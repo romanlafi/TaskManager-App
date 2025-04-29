@@ -15,7 +15,7 @@ services:
       - internal
 
   backend:
-    build: ./back
+    build: ./taskmanagerback
     container_name: taskmanager-api
     restart: always
     env_file:
