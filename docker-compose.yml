@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: taskmanager-db
+    restart: always
+    environment:
+      POSTGRES_USER: fastapi_user
+      POSTGRES_PASSWORD: fastapi_pass
+      POSTGRES_DB: fastapi_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  backend:
+    build: ./back
+    container_name: taskmanager-api
+    restart: always
+    env_file:
+      - ./back/.env
+    depends_on:
+      - db
+    environment:
+      - VIRTUAL_HOST=taskmanager-api.TUDOMINIO.duckdns.org
+      - LETSENCRYPT_HOST=taskmanager-api.TUDOMINIO.duckdns.org
+      - LETSENCRYPT_EMAIL=tuemail@dominio.com
+    networks:
+      - internal
+      - proxy
+    expose:
+      - "8000"
+
+  frontend:
+    build: ./front
+    container_name: taskmanager-frontend
+    restart: always
+    environment:
+      - VIRTUAL_HOST=taskmanager.TUDOMINIO.duckdns.org
+      - LETSENCRYPT_HOST=taskmanager.TUDOMINIO.duckdns.org
+      - LETSENCRYPT_EMAIL=tuemail@dominio.com
+    networks:
+      - proxy
+    expose:
+      - "80"
+
+volumes:
+  db_data:
+
+networks:
+  internal:
+  proxy:
+    external: true
