@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.venv/
+.env
+
+# Node.js
+node_modules/
+frontend/node_modules/
+
+# IDEs
+.idea/
+.vscode/

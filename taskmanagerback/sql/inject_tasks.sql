@@ -1,0 +1,22 @@
+INSERT INTO tasks (title, description, created_at, status, deadline, owner_id)
+VALUES
+('Task 1', 'Description for task 1', NOW() - INTERVAL '10 days', 'pending', NOW() + INTERVAL '10 days', 1),
+('Task 1', 'Description for task 2', NOW() - INTERVAL '19 days', 'in_progress', NOW() + INTERVAL '9 days', 1),
+('Task 3', 'Description for task 3', NOW() - INTERVAL '18 days', 'done', NOW() + INTERVAL '8 days', 1),
+('Task 4', 'Description for task 4', NOW() - INTERVAL '17 days', 'pending', NOW() + INTERVAL '7 days', 1),
+('Task 5', 'Description for task 5', NOW() - INTERVAL '16 days', 'in_progress', NOW() + INTERVAL '6 days', 1),
+('Task 6', 'Description for task 6', NOW() - INTERVAL '15 days', 'done', NOW() + INTERVAL '5 days', 1),
+('Task 7', 'Description for task 7', NOW() - INTERVAL '14 days', 'pending', NOW() + INTERVAL '4 days', 1),
+('Task 8', 'Description for task 8', NOW() - INTERVAL '13 days', 'in_progress', NOW() + INTERVAL '3 days', 1),
+('Task 9', 'Description for task 9', NOW() - INTERVAL '11 days', 'done', NOW() + INTERVAL '1 days', 1),
+('Task 10', 'Description for task 10', NOW() - INTERVAL '11 days', 'pending', NOW() + INTERVAL '1 day', 1),
+('Task 11', 'Description for task 11', NOW() - INTERVAL '10 days', 'in_progress', NOW() + INTERVAL '11 days', 1),
+('Task 11', 'Description for task 11', NOW() - INTERVAL '9 days', 'done', NOW() + INTERVAL '11 days', 1),
+('Task 13', 'Description for task 13', NOW() - INTERVAL '8 days', 'pending', NOW() + INTERVAL '10 days', 1),
+('Task 14', 'Description for task 14', NOW() - INTERVAL '7 days', 'in_progress', NOW() + INTERVAL '9 days', 1),
+('Task 15', 'Description for task 15', NOW() - INTERVAL '6 days', 'done', NOW() + INTERVAL '8 days', 1),
+('Task 16', 'Description for task 16', NOW() - INTERVAL '5 days', 'pending', NOW() + INTERVAL '7 days', 1),
+('Task 17', 'Description for task 17', NOW() - INTERVAL '4 days', 'in_progress', NOW() + INTERVAL '6 days', 1),
+('Task 18', 'Description for task 18', NOW() - INTERVAL '3 days', 'done', NOW() + INTERVAL '5 days', 1),
+('Task 19', 'Description for task 19', NOW() - INTERVAL '1 days', 'pending', NOW() + INTERVAL '4 days', 1),
+('Task 10', 'Description for task 10', NOW() - INTERVAL '1 day', 'in_progress', NOW() + INTERVAL '3 days', 1);
