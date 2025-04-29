@@ -22,33 +22,22 @@ services:
       - ./back/.env
     depends_on:
       - db
-    environment:
-      - VIRTUAL_HOST=taskmanager-api.TUDOMINIO.duckdns.org
-      - LETSENCRYPT_HOST=taskmanager-api.TUDOMINIO.duckdns.org
-      - LETSENCRYPT_EMAIL=tuemail@dominio.com
     networks:
       - internal
-      - proxy
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
 
   frontend:
     build: ./front
     container_name: taskmanager-frontend
     restart: always
-    environment:
-      - VIRTUAL_HOST=taskmanager.TUDOMINIO.duckdns.org
-      - LETSENCRYPT_HOST=taskmanager.TUDOMINIO.duckdns.org
-      - LETSENCRYPT_EMAIL=tuemail@dominio.com
     networks:
-      - proxy
-    expose:
-      - "80"
+      - internal
+    ports:
+      - "3000:80"   
 
 volumes:
   db_data:
 
 networks:
   internal:
-  proxy:
-    external: true
