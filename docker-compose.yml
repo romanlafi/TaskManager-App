@@ -19,7 +19,7 @@ services:
     container_name: taskmanager-api
     restart: always
     env_file:
-      - ./back/.env
+      - ./taskmanagerback/.env
     depends_on:
       - db
     networks:
@@ -28,7 +28,7 @@ services:
       - "8000:8000"
 
   frontend:
-    build: ./front
+    build: ./taskmanagerfront
     container_name: taskmanager-frontend
     restart: always
     networks:
