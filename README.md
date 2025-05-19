@@ -163,9 +163,3 @@ Frontend `.env` is configured for local development and Docker.
 - Docker
 - Docker Compose
 - Nginx
-
----
-
-## 📃 License
-
-This project is licensed under the MIT License.
