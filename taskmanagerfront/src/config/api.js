@@ -1,9 +1,9 @@
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_API_PROD_URL || "http://127.0.0.1:8000";
 
 export const API_ENDPOINTS = {
-    USERS: `${BASE_URL}/users`,
-    LOGIN: `${BASE_URL}/users/token`,
-    TASKS: `${BASE_URL}/tasks`
+    USERS: `${BASE_URL}users/`,
+    LOGIN: `${BASE_URL}users/token`,
+    TASKS: `${BASE_URL}tasks/`
 };
 
 export const HTTP_METHODS = {
