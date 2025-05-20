@@ -1,6 +1,6 @@
 # 📝 TaskManager
 
-**TaskManager** is a full-stack task management application built with **FastAPI** for the backend and **Vite + Vue 3** for the frontend. The app supports user authentication, task creation, updating, and deletion through a clean REST API and dynamic web interface.
+**TaskManager** is a full-stack task management application built with **Pyhton + FastAPI** for the backend and **React + Vite** for the frontend. The app supports user authentication, task creation, updating, and deletion through a clean REST API and dynamic web interface.
 
 ---
 
@@ -13,7 +13,7 @@
 - RESTful API design
 - Dockerized for easy deployment
 
-### 🎨 Frontend (Vue 3 + Vite)
+### 🎨 Frontend (React + Vite)
 - Authenticated SPA interface
 - Task list, create, edit, delete
 - Integrated with backend via HTTP API
@@ -154,9 +154,7 @@ Frontend `.env` is configured for local development and Docker.
 - Pydantic
 
 ### Frontend:
-- Vue 3 + Vite
-- Pinia
-- Vue Router
+- Vite
 - Axios
 
 ### DevOps:
