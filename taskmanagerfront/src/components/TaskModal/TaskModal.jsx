@@ -61,6 +61,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = {} }) => {
                         value={deadline}
                         onChange={(e) => setDeadline(e.target.value)}
                         placeholder="Deadline"
+                        required
                     />
 
                     {initialData?.id && (

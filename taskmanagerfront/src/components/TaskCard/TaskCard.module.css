@@ -96,3 +96,10 @@
 .iconButton:hover {
     transform: scale(1.15);
 }
+
+@media (max-width: 480px) {
+    .card {
+        width: 95%;
+        margin: 0 auto;
+    }
+}

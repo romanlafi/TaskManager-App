@@ -9,6 +9,7 @@ import ConfirmModal from "../../components/ConfirmModal/ConfirmModal.jsx";
 import { HTTP_STATUS } from "../../config/api.js";
 import {MESSAGES} from "../../config/messages.js";
 import warningIcon from "../../assets/icons/warning.svg";
+import {Filter} from "lucide-react";
 
 
 const Dashboard = ({setToastMessage, setToastType}) => {
@@ -37,6 +38,8 @@ const Dashboard = ({setToastMessage, setToastType}) => {
 
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const navigate = useNavigate();
+
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
 
     const loadTasks = async () => {
         setLoading(true);
@@ -126,39 +129,52 @@ const Dashboard = ({setToastMessage, setToastType}) => {
 
     return (
         <div className={styles.wrapper}>
-            <aside className={styles.sidebar}>
-                <FilterPanel
-                    orderBy={tempOrderBy}
-                    setOrderBy={setTempOrderBy}
-                    limit={tempLimit}
-                    setLimit={setTempLimit}
-                    status={tempStatus}
-                    setStatus={setTempStatus}
-                    beforeDeadline={tempBeforeDeadline}
-                    setBeforeDeadline={setTempBeforeDeadline}
-                    applyFilters={() => {
-                        setOrderBy(tempOrderBy);
-                        setLimit(tempLimit);
-                        setStatus(tempStatus);
-                        setBeforeDeadline(tempBeforeDeadline);
-                        setSkip(0);
-                    }}
-                    resetFilters={() => {
-                        setTempOrderBy('created_at');
-                        setTempLimit(10);
-                        setTempStatus('');
-                        setTempBeforeDeadline('');
+            <>
+                <button
+                    className={styles.filterToggle}
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    aria-label="Toggle filters"
+                >
+                    <Filter size={24} />
+                </button>
 
-                        setOrderBy('created_at');
-                        setLimit(10);
-                        setStatus('');
-                        setBeforeDeadline('');
-                        setSkip(0);
-                    }}
-                    onCreate={openCreateModal}
-                    onLogout={() => setShowLogoutConfirm(true)}
-                />
-            </aside>
+                <aside
+                    className={`${styles.sidebar} ${showMobileFilters ? styles.sidebarVisible : ''}`}
+                    onClick={() => setShowMobileFilters(false)}
+                >
+                    <FilterPanel
+                        orderBy={tempOrderBy}
+                        setOrderBy={setTempOrderBy}
+                        limit={tempLimit}
+                        setLimit={setTempLimit}
+                        status={tempStatus}
+                        setStatus={setTempStatus}
+                        beforeDeadline={tempBeforeDeadline}
+                        setBeforeDeadline={setTempBeforeDeadline}
+                        applyFilters={() => {
+                            setOrderBy(tempOrderBy);
+                            setLimit(tempLimit);
+                            setStatus(tempStatus);
+                            setBeforeDeadline(tempBeforeDeadline);
+                            setSkip(0);
+                        }}
+                        resetFilters={() => {
+                            setTempOrderBy('created_at');
+                            setTempLimit(10);
+                            setTempStatus('');
+                            setTempBeforeDeadline('');
+
+                            setOrderBy('created_at');
+                            setLimit(10);
+                            setStatus('');
+                            setBeforeDeadline('');
+                            setSkip(0);
+                        }}
+                        onCreate={openCreateModal}
+                        onLogout={() => setShowLogoutConfirm(true)}
+                    />
+                </aside>
+            </>
 
             <main className={styles.main}>
                 <header className={styles.header}>

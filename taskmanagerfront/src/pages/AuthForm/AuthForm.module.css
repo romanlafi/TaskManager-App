@@ -1,11 +1,13 @@
 .wrapper {
-    min-height: 100vh;
+    min-height: 100dvh; /* Fallback + compatibilidad moderna */
     background-color: #1b1a19;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
     font-family: 'Inter', sans-serif;
+    box-sizing: border-box;
+    overflow-y: auto; /* permite scroll si realmente es necesario */
 }
 
 .card {
@@ -16,6 +18,8 @@
     border-radius: 24px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
+    max-height: 100%;
+    overflow-y: auto; /* asegura que contenido interno pueda hacer scroll si se excede */
 }
 
 .card:hover {
@@ -32,9 +36,10 @@
 .form {
     display: flex;
     flex-direction: column;
-    align-items: center;   /* Añadimos esto */
+    align-items: center;
     justify-content: center;
     gap: 1rem;
+    width: 100%;
 }
 
 .toggle {
@@ -49,4 +54,24 @@
 .toggle:hover {
     text-decoration: underline;
     opacity: 0.8;
+}
+
+/* Responsive para móviles */
+@media (max-width: 480px) {
+    .card {
+        padding: 1.5rem;
+        max-width: 100%;
+    }
+
+    .title {
+        font-size: 20px;
+    }
+
+    .form {
+        gap: 0.75rem;
+    }
+
+    .toggle {
+        font-size: 13px;
+    }
 }
