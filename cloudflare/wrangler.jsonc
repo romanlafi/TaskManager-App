@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "taskmanager-app",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-27",
+  "assets": {
+    "directory": "../taskmanagerfront/dist",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "taskmanager-db",
+      "database_id": "ecd74d29-11e6-4215-9f1f-5e846d4f2218",
+      "migrations_dir": "migrations",
+      "migrations_table": "d1_migrations",
+      "migrations_pattern": "migrations/*/migration.sql"
+    }
+  ],
+  "vars": {
+    "JWT_ISSUER": "taskmanager-app"
+  }
+}

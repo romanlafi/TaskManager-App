@@ -1,0 +1,23 @@
+{
+  "name": "taskmanager-cloudflare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit",
+    "build": "npm --prefix ../taskmanagerfront install && npm --prefix ../taskmanagerfront run build",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply taskmanager-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply taskmanager-db --remote"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "hono": "^4.7.7",
+    "jose": "^6.0.10"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.39.0"
+  }
+}

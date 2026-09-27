@@ -1,0 +1,10 @@
+# IDE configuration
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/*.xml
+
+# Node and Cloudflare generated files
+**/node_modules/
+**/.wrangler/
+**/dist/
+**/.dev.vars
