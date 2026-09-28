@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/new_logo_text.png';
 import { loginUser, registerUser } from '../../services/authService';
 import Button from '../../components/ui/Button/Button';
 import { Input } from '../../components/ui/Input/Input';
@@ -63,9 +64,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
   return (
     <div className="min-h-dvh bg-bg flex items-center justify-center p-8 box-border overflow-y-auto">
       <div className="max-w-[400px] w-full bg-surface p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] transition-transform duration-200 max-h-full overflow-y-auto hover:scale-[1.02] max-sm:p-6 max-sm:max-w-full">
-        <h3 className="text-center text-2xl mb-6 text-content max-sm:text-xl">
-          {isLogin ? 'Welcome back' : 'Create your account'}
-        </h3>
+        <img src={logo} alt="TaskManager" className="mx-auto mb-4 h-60 w-full object-contain" />
 
         <form onSubmit={handleSubmit} className="flex flex-col items-center justify-center gap-4 w-full max-sm:gap-3">
           <Input
