@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm --prefix ../taskmanagerfront install && npm --prefix ../taskmanagerfront run build && wrangler dev",
+    "dev": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build && wrangler dev",
     "typecheck": "tsc --noEmit",
-    "build": "npm --prefix ../taskmanagerfront install && npm --prefix ../taskmanagerfront run build",
+    "build": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply taskmanager-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply taskmanager-db --remote"
