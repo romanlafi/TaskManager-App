@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import styles from './Input.module.css';
 import { Eye, EyeOff } from 'lucide-react';
 import type { InputHTMLAttributes } from 'react';
 
@@ -12,21 +11,21 @@ export const Input = ({ type = 'text', ...props }: InputProps) => {
   const inputType = isPassword ? passwordType : type;
 
   return (
-    <div className={styles.wrapper}>
+    <div className="relative w-full">
       <input
         {...props}
         type={inputType}
-        className={styles.input}
+        className={`w-full box-border py-3 pl-3 border border-[#ddd] rounded-xl bg-[#f5f5f5] text-[#333] transition-colors placeholder:text-[#aaa] placeholder:text-base focus:outline-none focus:border-[#8d745b] focus:shadow-[0_0_0_2px_#76614b] ${isPassword ? 'pr-10' : 'pr-3'} ${inputType === 'password' ? 'text-xl tracking-[0.15em]' : 'text-base'}`}
         autoComplete={isPassword ? 'current-password' : undefined}
       />
       {isPassword && (
         <button
           type="button"
-          className={styles.toggle}
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-[#333] p-0 flex items-center"
           onClick={() => setShowPassword(!showPassword)}
           aria-label="Toggle password visibility"
         >
-          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       )}
     </div>

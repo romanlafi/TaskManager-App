@@ -1,4 +1,3 @@
-import styles from './Dashboard.module.css';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createTask, deleteTask, fetchTasks, updateTask } from '../../services/taskService';
@@ -18,28 +17,22 @@ interface DashboardProps {
 
 const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
   const [tasks, setTasks] = useState<Task[]>([]);
-
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState('created_at');
   const [status, setStatus] = useState('');
   const [beforeDeadline, setBeforeDeadline] = useState('');
   const [limit, setLimit] = useState(10);
-
   const [tempOrderBy, setTempOrderBy] = useState(orderBy);
   const [tempStatus, setTempStatus] = useState(status);
   const [tempBeforeDeadline, setTempBeforeDeadline] = useState(beforeDeadline);
   const [tempLimit, setTempLimit] = useState(limit);
-
   const [skip] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-
   const [showConfirm, setShowConfirm] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
-
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const navigate = useNavigate();
@@ -53,9 +46,7 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
     setLoading(true);
     setError(null);
     try {
-      const { status: responseStatus, data } = await fetchTasks(
-        skip, limit, search, orderBy, status, beforeDeadline,
-      );
+      const { status: responseStatus, data } = await fetchTasks(skip, limit, search, orderBy, status, beforeDeadline);
       if (responseStatus === HTTP_STATUS.UNAUTHORIZED) {
         handleLogout();
         showToast(MESSAGES.SESSION_EXPIRED_ERROR, 'error');
@@ -112,75 +103,47 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
     showToast(MESSAGES.SESSION_ENDED, 'success');
   };
 
-  const openCreateModal = () => {
-    setEditingTask(null);
-    setShowModal(true);
-  };
+  const openCreateModal = () => { setEditingTask(null); setShowModal(true); };
+  const openEditModal = (task: Task) => { setEditingTask(task); setShowModal(true); };
+  const closeModal = () => { setShowModal(false); setEditingTask(null); };
 
-  const openEditModal = (task: Task) => {
-    setEditingTask(task);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingTask(null);
-  };
-
-  useEffect(() => {
-    loadTasks();
-  }, [search, orderBy, status, beforeDeadline, limit]);
+  useEffect(() => { loadTasks(); }, [search, orderBy, status, beforeDeadline, limit]);
 
   return (
-    <div className={styles.wrapper}>
-        <button
-          className={styles.filterToggle}
-          onClick={() => setShowMobileFilters(!showMobileFilters)}
-          aria-label="Toggle filters"
-        >
-          <Filter size={24} />
-        </button>
+    <div className="flex h-screen bg-bg text-content font-[Urbanist,sans-serif]">
+      {/* Mobile filter toggle */}
+      <button
+        className="hidden max-md:flex fixed bottom-4 left-4 z-[1001] w-12 h-12 rounded-full bg-accent text-white border-none shadow-[0_4px_10px_rgba(0,0,0,0.3)] justify-center items-center transition-colors hover:bg-accent/80 cursor-pointer"
+        onClick={() => setShowMobileFilters(!showMobileFilters)}
+        aria-label="Toggle filters"
+      >
+        <Filter size={24} />
+      </button>
 
-        <aside
-          className={`${styles.sidebar} ${showMobileFilters ? styles.sidebarVisible : ''}`}
-          onClick={() => setShowMobileFilters(false)}
-          onKeyDown={(e) => e.key === 'Escape' && setShowMobileFilters(false)}
-        >
-          <FilterPanel
-            orderBy={tempOrderBy}
-            setOrderBy={setTempOrderBy}
-            limit={tempLimit}
-            setLimit={setTempLimit}
-            status={tempStatus}
-            setStatus={setTempStatus}
-            beforeDeadline={tempBeforeDeadline}
-            setBeforeDeadline={setTempBeforeDeadline}
-            applyFilters={() => {
-              setOrderBy(tempOrderBy);
-              setLimit(tempLimit);
-              setStatus(tempStatus);
-              setBeforeDeadline(tempBeforeDeadline);
-            }}
-            resetFilters={() => {
-              setTempOrderBy('created_at');
-              setTempLimit(10);
-              setTempStatus('');
-              setTempBeforeDeadline('');
-              setOrderBy('created_at');
-              setLimit(10);
-              setStatus('');
-              setBeforeDeadline('');
-            }}
-            onCreate={openCreateModal}
-            onLogout={() => setShowLogoutConfirm(true)}
-          />
-        </aside>
+      {/* Sidebar */}
+      <aside
+        className={`w-[280px] bg-surface border-r border-divider p-8 shadow-[inset_-2px_0_10px_rgba(0,0,0,0.1)] max-md:fixed max-md:top-0 max-md:h-screen max-md:z-[1000] max-md:w-[60%] max-md:transition-[left] max-md:duration-300 max-md:shadow-[2px_0_10px_rgba(0,0,0,0.3)] ${showMobileFilters ? 'max-md:left-0' : 'max-md:left-[-100%]'}`}
+        onClick={() => setShowMobileFilters(false)}
+        onKeyDown={(e) => e.key === 'Escape' && setShowMobileFilters(false)}
+      >
+        <FilterPanel
+          orderBy={tempOrderBy} setOrderBy={setTempOrderBy}
+          limit={tempLimit} setLimit={setTempLimit}
+          status={tempStatus} setStatus={setTempStatus}
+          beforeDeadline={tempBeforeDeadline} setBeforeDeadline={setTempBeforeDeadline}
+          applyFilters={() => { setOrderBy(tempOrderBy); setLimit(tempLimit); setStatus(tempStatus); setBeforeDeadline(tempBeforeDeadline); }}
+          resetFilters={() => { setTempOrderBy('created_at'); setTempLimit(10); setTempStatus(''); setTempBeforeDeadline(''); setOrderBy('created_at'); setLimit(10); setStatus(''); setBeforeDeadline(''); }}
+          onCreate={openCreateModal}
+          onLogout={() => setShowLogoutConfirm(true)}
+        />
+      </aside>
 
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <h1>My Tasks</h1>
+      {/* Main */}
+      <main className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto max-md:p-4">
+        <header className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">My Tasks</h1>
           <input
-            className={styles.search}
+            className="py-3 px-4 rounded-lg border border-divider bg-[#2e2d2b] text-content w-full max-w-[300px] placeholder:text-[#aaa] focus:outline-none max-md:max-w-[180px]"
             type="text"
             placeholder="Search tasks..."
             value={search}
@@ -188,19 +151,16 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
           />
         </header>
 
-        <section className={styles.taskList}>
+        <section className="flex flex-col gap-4">
           {loading && <p>Loading...</p>}
-          {error && <p style={{ color: 'red' }}>{error}</p>}
+          {error && <p className="text-red-500">{error}</p>}
           {!loading && tasks.length === 0 && <p>No tasks found.</p>}
           {tasks.map((task) => (
             <TaskCard
               key={task.id}
               {...task}
               onEdit={() => openEditModal(task)}
-              onDelete={() => {
-                setTaskToDelete(task.id);
-                setShowConfirm(true);
-              }}
+              onDelete={() => { setTaskToDelete(task.id); setShowConfirm(true); }}
             />
           ))}
         </section>
@@ -213,11 +173,8 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
         confirmText="Delete"
         cancelText="Cancel"
         onConfirm={() => handleDeleteTask(taskToDelete!)}
-        onCancel={() => {
-          setShowConfirm(false);
-          setTaskToDelete(null);
-        }}
-        icon={<TriangleAlert size={24} />}
+        onCancel={() => { setShowConfirm(false); setTaskToDelete(null); }}
+        icon={<TriangleAlert size={32} />}
       />
 
       <ConfirmModal

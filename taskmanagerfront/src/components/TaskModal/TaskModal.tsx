@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import styles from './TaskModal.module.css';
 import Button from '../ui/Button/Button';
 import CalendarInput from '../ui/CalendarInput/CalendarInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
@@ -46,22 +45,24 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
   if (!isOpen) return null;
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <h2>{initialData?.id ? 'Edit Task' : 'New Task'}</h2>
-        <form onSubmit={handleSubmit} className={styles.form}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]">
+      <div className="bg-surface text-content p-8 rounded-2xl max-w-[500px] w-[70%] shadow-[0_6px_30px_rgba(0,0,0,0.3)]">
+        <h2 className="mb-4 text-xl font-semibold">{initialData?.id ? 'Edit Task' : 'New Task'}</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="text"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+            className="p-3 rounded-lg border-none text-base bg-[#2f2f2f] text-content w-full focus:outline-none"
           />
           <textarea
             placeholder="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
+            className="p-3 rounded-lg border-none text-base bg-[#2f2f2f] text-content resize-y w-full focus:outline-none"
           />
           <CalendarInput
             value={deadline}
@@ -80,7 +81,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
               ]}
             />
           )}
-          <div className={styles.actions}>
+          <div className="flex justify-end gap-4">
             <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
             <Button type="submit">Save</Button>
           </div>
