@@ -8,8 +8,7 @@ import TaskModal from '../../components/TaskModal/TaskModal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { HTTP_STATUS } from '../../config/api';
 import { MESSAGES } from '../../config/messages';
-import warningIcon from '../../assets/icons/warning.svg';
-import { Filter } from 'lucide-react';
+import { Filter, TriangleAlert } from 'lucide-react';
 import type { Task, TaskFormData, ToastType } from '../../types';
 
 interface DashboardProps {
@@ -218,7 +217,7 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
           setShowConfirm(false);
           setTaskToDelete(null);
         }}
-        icon={<img src={warningIcon} alt="Warning" />}
+        icon={<TriangleAlert size={24} />}
       />
 
       <ConfirmModal

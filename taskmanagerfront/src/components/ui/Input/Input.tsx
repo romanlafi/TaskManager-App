@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import styles from './Input.module.css';
-import eye from '../../../assets/icons/eye.svg';
-import eyeOff from '../../../assets/icons/eyeOff.svg';
+import { Eye, EyeOff } from 'lucide-react';
 import type { InputHTMLAttributes } from 'react';
 
 type InputProps = InputHTMLAttributes<HTMLInputElement>;
@@ -27,11 +26,7 @@ export const Input = ({ type = 'text', ...props }: InputProps) => {
           onClick={() => setShowPassword(!showPassword)}
           aria-label="Toggle password visibility"
         >
-          <img
-            src={showPassword ? eyeOff : eye}
-            alt="Toggle password"
-            className={styles.icon}
-          />
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       )}
     </div>

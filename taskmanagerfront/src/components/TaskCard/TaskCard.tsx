@@ -1,7 +1,6 @@
 import styles from './TaskCard.module.css';
 import Button from '../ui/Button/Button';
-import editIcon from '../../assets/icons/edit.svg';
-import deleteIcon from '../../assets/icons/delete.svg';
+import { Pencil, Trash2 } from 'lucide-react';
 import type { TaskStatus } from '../../types';
 
 interface TaskCardProps {
@@ -43,12 +42,12 @@ const TaskCard = ({ title, description, status, deadline, created_at, onEdit, on
         <div className={styles.iconActions}>
           {onDelete && (
             <Button variant="icon danger" onClick={onDelete} title="Delete Task">
-              <img src={deleteIcon} alt="Delete" />
+              <Trash2 size={16} />
             </Button>
           )}
           {onEdit && (
             <Button variant="icon" onClick={onEdit} title="Edit Task">
-              <img src={editIcon} alt="Edit" />
+              <Pencil size={16} />
             </Button>
           )}
         </div>
