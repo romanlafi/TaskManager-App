@@ -6,7 +6,10 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "paths": {
+      "@taskmanager/types": ["../packages/types/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "worker-configuration.d.ts"]
 }

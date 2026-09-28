@@ -1,4 +1,5 @@
-export type TaskStatus = 'pending' | 'in_progress' | 'done';
+import type { TaskStatus } from '@taskmanager/types';
+export type { TaskStatus };
 
 export interface Env {
   DB: D1Database;
