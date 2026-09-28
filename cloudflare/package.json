@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "npm --prefix ../taskmanagerfront install && npm --prefix ../taskmanagerfront run build && wrangler dev",
     "typecheck": "tsc --noEmit",
     "build": "npm --prefix ../taskmanagerfront install && npm --prefix ../taskmanagerfront run build",
     "deploy": "wrangler deploy",
@@ -11,6 +11,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply taskmanager-db --remote"
   },
   "dependencies": {
+    "@taskmanager/types": "*",
     "bcryptjs": "^3.0.2",
     "hono": "^4.7.7",
     "jose": "^6.0.10"
