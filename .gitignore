@@ -8,6 +8,7 @@
 
 # Node and Cloudflare generated files
 **/node_modules/
+**/package-lock.json
 **/.wrangler/
 **/dist/
 **/.dev.vars
