@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'icon' | 'icon-danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'minimal' | 'icon' | 'icon-danger';
 export type ButtonSize = 's' | 'm' | 'l';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,6 +20,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   outline: 'w-full border border-accent bg-transparent text-content hover:bg-accent/10 active:bg-accent/20',
   danger: 'w-full bg-[#b00020] text-white hover:bg-[#c63a3a] active:bg-[#a52d2d]',
   ghost: 'w-full bg-transparent text-content hover:bg-white/5 active:bg-white/10',
+  minimal: 'w-auto bg-transparent px-0 text-content hover:text-accent active:text-accent/80',
   icon: 'rounded-lg bg-transparent text-content hover:bg-white/10 active:bg-white/15',
   'icon-danger': 'rounded-lg bg-transparent text-[#ff8a8a] hover:bg-[#b00020]/20 hover:text-[#ffaaaa] active:bg-[#b00020]/30',
 };
@@ -50,11 +51,11 @@ const Button = ({
 
   return (
     <button
-      className={`${BASE} ${VARIANTS[variant]} ${iconOnly ? ICON_BUTTON_SIZES[size] : sizeStyles.button} ${className}`}
+      className={`${BASE} ${VARIANTS[variant]} ${iconOnly ? ICON_BUTTON_SIZES[size] : sizeStyles.button} ${variant === 'minimal' ? 'group rounded-none' : ''} ${className}`}
       type={type}
       {...props}
     >
-      {Icon && <Icon aria-hidden="true" size={sizeStyles.icon} className="shrink-0" />}
+      {Icon && <Icon aria-hidden="true" size={sizeStyles.icon} className={`shrink-0 ${variant === 'minimal' ? 'transition-transform duration-300 group-hover:-rotate-[360deg] motion-reduce:transition-none' : ''}`} />}
       {text && !iconOnly && <span className={sizeStyles.text}>{text}</span>}
     </button>
   );

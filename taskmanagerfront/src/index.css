@@ -35,6 +35,10 @@ body {
 input::-webkit-credentials-auto-fill-button,
 input::-webkit-strong-password-auto-fill-button { display: none !important; }
 
+.date-input-native {
+  color-scheme: dark;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }

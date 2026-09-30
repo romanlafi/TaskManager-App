@@ -29,7 +29,7 @@ const DateInput = ({
         {...props}
         id={inputId}
         type="date"
-        className={`${getFieldClassName(size, variant)} ${className}`}
+        className={`date-input-native ${getFieldClassName(size, variant)} ${className}`}
       />
     </div>
   );

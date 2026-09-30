@@ -1,7 +1,7 @@
 import Button from '../ui/Button/Button';
 import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
-import { ListFilter, LogOut, Plus, RotateCcw } from 'lucide-react';
+import { LogOut, Plus, RotateCcw } from 'lucide-react';
 
 interface FilterPanelProps {
   orderBy: string;
@@ -12,7 +12,6 @@ interface FilterPanelProps {
   setStatus: (v: string) => void;
   beforeDeadline: string;
   setBeforeDeadline: (v: string) => void;
-  applyFilters: () => void;
   resetFilters: () => void;
   onCreate: () => void;
   onLogout: () => void;
@@ -20,10 +19,13 @@ interface FilterPanelProps {
 
 const FilterPanel = ({
   orderBy, setOrderBy, limit, setLimit, status, setStatus,
-  beforeDeadline, setBeforeDeadline, applyFilters, resetFilters, onCreate, onLogout,
+  beforeDeadline, setBeforeDeadline, resetFilters, onCreate, onLogout,
 }: FilterPanelProps) => (
-  <div className="flex flex-col gap-4 text-[0.95rem] text-content">
-    <h2 className="text-lg font-semibold">Filters</h2>
+  <div className="flex h-full flex-col gap-4 text-[0.95rem] text-content">
+    <div className="flex items-center justify-between">
+      <h2 className="text-lg font-semibold">Filters</h2>
+      <Button variant="minimal" onClick={resetFilters} icon={RotateCcw} text="Reset"/>
+    </div>
 
     <SelectInput
       label="Order by"
@@ -67,13 +69,8 @@ const FilterPanel = ({
       ]}
     />
 
-    <div className="flex gap-2 justify-between mt-4">
-      <Button variant="outline" onClick={resetFilters} icon={RotateCcw} text="Reset" size="s" />
-      <Button onClick={applyFilters} icon={ListFilter} text="Apply" size="s" />
-    </div>
-
     <Button onClick={onCreate} icon={Plus} text="Add Task" />
-    <Button onClick={onLogout} variant="ghost" icon={LogOut} text="Log out" />
+    <Button onClick={onLogout} variant="secondary" icon={LogOut} text="Log out" className="mt-auto" />
   </div>
 );
 

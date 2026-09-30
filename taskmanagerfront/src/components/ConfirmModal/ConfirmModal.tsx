@@ -1,6 +1,7 @@
 import Button from '../ui/Button/Button';
 import type { ButtonVariant } from '../ui/Button/Button';
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   confirmVariant?: ButtonVariant;
+  confirmButtonIcon?: LucideIcon;
   icon?: ReactNode;
 }
 
@@ -18,7 +20,7 @@ const ConfirmModal = ({
   isOpen, onConfirm, onCancel,
   title = 'Confirm', message = 'Are you sure?',
   confirmText = 'Confirm', cancelText = 'Cancel',
-  confirmVariant = 'danger', icon = null,
+  confirmVariant = 'danger', confirmButtonIcon, icon = null,
 }: ConfirmModalProps) => {
   if (!isOpen) return null;
 
@@ -30,7 +32,7 @@ const ConfirmModal = ({
         <p className="text-sm opacity-80">{message}</p>
         <div className="mt-6 flex justify-between gap-4">
           <Button onClick={onCancel} variant="outline" text={cancelText} />
-          <Button onClick={onConfirm} variant={confirmVariant} text={confirmText} />
+          <Button onClick={onConfirm} variant={confirmVariant} icon={confirmButtonIcon} text={confirmText} />
         </div>
       </div>
     </div>

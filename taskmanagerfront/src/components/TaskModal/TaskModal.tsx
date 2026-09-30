@@ -4,6 +4,7 @@ import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
 import Textarea from '../ui/Textarea/Textarea';
 import { Input } from '../ui/Input/Input';
+import { Save } from 'lucide-react';
 import type { Task, TaskFormData, TaskStatus } from '../../types';
 
 interface TaskModalProps {
@@ -55,6 +56,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
             label="Title"
             placeholder="Write a short title"
             value={title}
+            maxLength={100}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
@@ -62,6 +64,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
             label="Description"
             placeholder="Add some details (optional)"
             value={description}
+            maxLength={1000}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
           />
@@ -84,7 +87,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
           )}
           <div className="flex justify-end gap-4">
             <Button variant="outline" type="button" onClick={onClose} text="Cancel" />
-            <Button type="submit" text="Save" />
+            <Button type="submit" icon={Save} text="Save" />
           </div>
         </form>
       </div>

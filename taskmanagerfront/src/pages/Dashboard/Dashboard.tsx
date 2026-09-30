@@ -7,7 +7,7 @@ import TaskModal from '../../components/TaskModal/TaskModal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { HTTP_STATUS } from '../../config/api';
 import { MESSAGES } from '../../config/messages';
-import { Filter, TriangleAlert } from 'lucide-react';
+import { Filter, LogOut, Trash2, TriangleAlert } from 'lucide-react';
 import { Input } from '../../components/ui/Input/Input';
 import type { Task, TaskFormData, ToastType } from '../../types';
 
@@ -23,10 +23,6 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
   const [status, setStatus] = useState('');
   const [beforeDeadline, setBeforeDeadline] = useState('');
   const [limit, setLimit] = useState(10);
-  const [tempOrderBy, setTempOrderBy] = useState(orderBy);
-  const [tempStatus, setTempStatus] = useState(status);
-  const [tempBeforeDeadline, setTempBeforeDeadline] = useState(beforeDeadline);
-  const [tempLimit, setTempLimit] = useState(limit);
   const [skip] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,12 +124,11 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
         onKeyDown={(e) => e.key === 'Escape' && setShowMobileFilters(false)}
       >
         <FilterPanel
-          orderBy={tempOrderBy} setOrderBy={setTempOrderBy}
-          limit={tempLimit} setLimit={setTempLimit}
-          status={tempStatus} setStatus={setTempStatus}
-          beforeDeadline={tempBeforeDeadline} setBeforeDeadline={setTempBeforeDeadline}
-          applyFilters={() => { setOrderBy(tempOrderBy); setLimit(tempLimit); setStatus(tempStatus); setBeforeDeadline(tempBeforeDeadline); }}
-          resetFilters={() => { setTempOrderBy('created_at'); setTempLimit(10); setTempStatus(''); setTempBeforeDeadline(''); setOrderBy('created_at'); setLimit(10); setStatus(''); setBeforeDeadline(''); }}
+          orderBy={orderBy} setOrderBy={setOrderBy}
+          limit={limit} setLimit={setLimit}
+          status={status} setStatus={setStatus}
+          beforeDeadline={beforeDeadline} setBeforeDeadline={setBeforeDeadline}
+          resetFilters={() => { setOrderBy('created_at'); setLimit(10); setStatus(''); setBeforeDeadline(''); }}
           onCreate={openCreateModal}
           onLogout={() => setShowLogoutConfirm(true)}
         />
@@ -142,9 +137,9 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       {/* Main */}
       <main className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto max-md:p-4">
         <header className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">My Tasks</h1>
+          <h1 className="shrink-0 text-2xl font-bold">My Tasks</h1>
           <Input
-            className="max-w-[300px] max-md:max-w-[180px]"
+            fieldClassName="ml-auto max-w-[300px] max-md:max-w-[180px]"
             type="search"
             aria-label="Search tasks"
             placeholder="Search tasks..."
@@ -174,6 +169,7 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
         message="Are you sure you want to delete this task?"
         confirmText="Delete"
         cancelText="Cancel"
+        confirmButtonIcon={Trash2}
         onConfirm={() => handleDeleteTask(taskToDelete!)}
         onCancel={() => { setShowConfirm(false); setTaskToDelete(null); }}
         icon={<TriangleAlert size={32} />}
@@ -186,6 +182,7 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
         confirmText="Log out"
         cancelText="Cancel"
         confirmVariant="danger"
+        confirmButtonIcon={LogOut}
         onConfirm={handleLogout}
         onCancel={() => setShowLogoutConfirm(false)}
       />
