@@ -1,5 +1,7 @@
 # TaskManager
 
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=romanlafi_TaskManager-App&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=romanlafi_TaskManager-App) [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=romanlafi_TaskManager-App&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=romanlafi_TaskManager-App) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=romanlafi_TaskManager-App&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=romanlafi_TaskManager-App) [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=romanlafi_TaskManager-App&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=romanlafi_TaskManager-App) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=romanlafi_TaskManager-App&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=romanlafi_TaskManager-App)
+
 Full-stack task management app built with **Cloudflare Workers + D1** (backend) and **React + Vite** (frontend).
 
 ---
