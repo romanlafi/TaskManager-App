@@ -120,7 +120,6 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       {/* Sidebar */}
       <aside
         className={`w-[280px] bg-surface border-r border-divider p-8 shadow-[inset_-2px_0_10px_rgba(0,0,0,0.1)] max-md:fixed max-md:top-0 max-md:h-screen max-md:z-[1000] max-md:w-[60%] max-md:transition-[left] max-md:duration-300 max-md:shadow-[2px_0_10px_rgba(0,0,0,0.3)] ${showMobileFilters ? 'max-md:left-0' : 'max-md:left-[-100%]'}`}
-        onClick={() => setShowMobileFilters(false)}
         onKeyDown={(e) => e.key === 'Escape' && setShowMobileFilters(false)}
       >
         <FilterPanel
