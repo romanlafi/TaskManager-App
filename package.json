@@ -8,5 +8,13 @@
   ],
   "dependencies": {
     "taskmanager-cloudflare": "*"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.2",
+    "vitest": "^5.0.2"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=lcov"
   }
 }
