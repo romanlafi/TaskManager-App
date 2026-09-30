@@ -3,13 +3,15 @@
 
 # IDE configuration
 .idea/*
-!.idea/runConfigurations/
-!.idea/runConfigurations/*.xml
+.idea/runConfigurations/
+.idea/runConfigurations/*.xml
 
 # Node and Cloudflare generated files
 **/node_modules/
 taskmanagerfront/package-lock.json
-**/package-lock.json
+cloudflare/package-lock.json
 **/.wrangler/
 **/dist/
 **/.dev.vars
+
+coverage/

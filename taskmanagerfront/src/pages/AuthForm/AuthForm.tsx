@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, UserPlus } from 'lucide-react';
-import logo from '../../assets/new_logo_text.png';
+import logo from '../../assets/new_logo_text.webp';
 import { loginUser, registerUser } from '../../services/authService';
 import Button from '../../components/ui/Button/Button';
 import { Input } from '../../components/ui/Input/Input';
