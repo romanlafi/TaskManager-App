@@ -1,4 +1,5 @@
 import Button from '../ui/Button/Button';
+import type { ButtonVariant } from '../ui/Button/Button';
 import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
@@ -9,7 +10,7 @@ interface ConfirmModalProps {
   message?: string;
   confirmText?: string;
   cancelText?: string;
-  confirmVariant?: string;
+  confirmVariant?: ButtonVariant;
   icon?: ReactNode;
 }
 
@@ -28,8 +29,8 @@ const ConfirmModal = ({
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
         <p className="text-sm opacity-80">{message}</p>
         <div className="mt-6 flex justify-between gap-4">
-          <Button onClick={onCancel} variant="outline">{cancelText}</Button>
-          <Button onClick={onConfirm} variant={confirmVariant}>{confirmText}</Button>
+          <Button onClick={onCancel} variant="outline" text={cancelText} />
+          <Button onClick={onConfirm} variant={confirmVariant} text={confirmText} />
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build && wrangler dev",
+    "dev": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build && wrangler d1 migrations apply taskmanager-db --local && wrangler dev",
     "typecheck": "tsc --noEmit",
     "build": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build",
     "deploy": "wrangler deploy",

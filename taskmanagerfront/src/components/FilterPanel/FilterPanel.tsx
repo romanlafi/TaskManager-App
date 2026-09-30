@@ -1,6 +1,7 @@
 import Button from '../ui/Button/Button';
-import CalendarInput from '../ui/CalendarInput/CalendarInput';
+import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
+import { ListFilter, LogOut, Plus, RotateCcw } from 'lucide-react';
 
 interface FilterPanelProps {
   orderBy: string;
@@ -48,7 +49,7 @@ const FilterPanel = ({
       ]}
     />
 
-    <CalendarInput
+    <DateInput
       label="Before deadline"
       value={beforeDeadline}
       onChange={(e) => setBeforeDeadline(e.target.value)}
@@ -67,12 +68,12 @@ const FilterPanel = ({
     />
 
     <div className="flex gap-2 justify-between mt-4">
-      <Button variant="outline" onClick={resetFilters}>Reset</Button>
-      <Button onClick={applyFilters}>Apply</Button>
+      <Button variant="outline" onClick={resetFilters} icon={RotateCcw} text="Reset" size="s" />
+      <Button onClick={applyFilters} icon={ListFilter} text="Apply" size="s" />
     </div>
 
-    <Button onClick={onCreate}>Add Task</Button>
-    <Button onClick={onLogout}>Log out</Button>
+    <Button onClick={onCreate} icon={Plus} text="Add Task" />
+    <Button onClick={onLogout} variant="ghost" icon={LogOut} text="Log out" />
   </div>
 );
 

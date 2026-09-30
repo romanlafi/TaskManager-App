@@ -1,5 +1,12 @@
 {
   "name": "taskmanager-app",
   "private": true,
-  "workspaces": ["packages/*", "cloudflare", "taskmanagerfront"]
+  "workspaces": [
+    "packages/*",
+    "cloudflare",
+    "taskmanagerfront"
+  ],
+  "dependencies": {
+    "taskmanager-cloudflare": "*"
+  }
 }

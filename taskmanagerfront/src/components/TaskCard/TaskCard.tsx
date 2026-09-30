@@ -47,14 +47,10 @@ const TaskCard = ({ title, description, status, deadline, created_at, onEdit, on
     {(onEdit || onDelete) && (
       <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 items-end">
         {onDelete && (
-          <Button variant="icon danger" onClick={onDelete} title="Delete Task">
-            <Trash2 size={16} />
-          </Button>
+          <Button variant="icon-danger" icon={Trash2} size="s" onClick={onDelete} aria-label="Delete task" title="Delete task" />
         )}
         {onEdit && (
-          <Button variant="icon" onClick={onEdit} title="Edit Task">
-            <Pencil size={16} />
-          </Button>
+          <Button variant="icon" icon={Pencil} size="s" onClick={onEdit} aria-label="Edit task" title="Edit task" />
         )}
       </div>
     )}

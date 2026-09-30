@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogIn, UserPlus } from 'lucide-react';
 import logo from '../../assets/new_logo_text.png';
 import { loginUser, registerUser } from '../../services/authService';
 import Button from '../../components/ui/Button/Button';
@@ -63,24 +64,24 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
 
   return (
     <div className="min-h-dvh bg-bg flex items-center justify-center p-8 box-border overflow-y-auto">
-      <div className="max-w-[400px] w-full bg-surface p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] transition-transform duration-200 max-h-full overflow-y-auto hover:scale-[1.02] max-sm:p-6 max-sm:max-w-full">
+      <div className="max-w-[400px] w-full bg-surface p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] max-h-full overflow-y-auto max-sm:p-6 max-sm:max-w-full">
         <img src={logo} alt="TaskManager" className="mx-auto mb-4 h-60 w-full object-contain" />
 
         <form onSubmit={handleSubmit} className="flex flex-col items-center justify-center gap-4 w-full max-sm:gap-3">
           <Input
-            placeholder="Username"
+            label="Username"
+            placeholder="Enter your username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
           <Input
+            label="Password"
             type="password"
-            placeholder="Password"
+            placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit">
-            {isLogin ? 'Log In' : 'Register'}
-          </Button>
+          <Button type="submit" text={isLogin ? 'Log In' : 'Register'} icon={isLogin ? LogIn : UserPlus} />
         </form>
 
         <button

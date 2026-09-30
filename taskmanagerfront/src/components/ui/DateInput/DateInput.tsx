@@ -3,24 +3,22 @@ import type { InputHTMLAttributes } from 'react';
 import { FieldLabel, getFieldClassName } from '../fieldStyles';
 import type { FieldSize, FieldVariant } from '../fieldStyles';
 
-interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
   label?: string;
   size?: FieldSize;
   variant?: FieldVariant;
   fieldClassName?: string;
 }
 
-export const Input = ({
+const DateInput = ({
   id,
   label,
-  type = 'text',
   size = 'm',
   variant = 'default',
   className = '',
   fieldClassName = '',
-  autoComplete,
   ...props
-}: InputProps) => {
+}: DateInputProps) => {
   const generatedId = useId();
   const inputId = id ?? generatedId;
 
@@ -30,10 +28,11 @@ export const Input = ({
       <input
         {...props}
         id={inputId}
-        type={type}
-        autoComplete={autoComplete ?? (type === 'password' ? 'current-password' : undefined)}
+        type="date"
         className={`${getFieldClassName(size, variant)} ${className}`}
       />
     </div>
   );
 };
+
+export default DateInput;

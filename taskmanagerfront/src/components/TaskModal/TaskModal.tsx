@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import Button from '../ui/Button/Button';
-import CalendarInput from '../ui/CalendarInput/CalendarInput';
+import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
+import Textarea from '../ui/Textarea/Textarea';
+import { Input } from '../ui/Input/Input';
 import type { Task, TaskFormData, TaskStatus } from '../../types';
 
 interface TaskModalProps {
@@ -49,25 +51,24 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
       <div className="bg-surface text-content p-8 rounded-2xl max-w-[500px] w-[70%] shadow-[0_6px_30px_rgba(0,0,0,0.3)]">
         <h2 className="mb-4 text-xl font-semibold">{initialData?.id ? 'Edit Task' : 'New Task'}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Title"
+          <Input
+            label="Title"
+            placeholder="Write a short title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="p-3 rounded-lg border-none text-base bg-[#2f2f2f] text-content w-full focus:outline-none"
           />
-          <textarea
-            placeholder="Description"
+          <Textarea
+            label="Description"
+            placeholder="Add some details (optional)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="p-3 rounded-lg border-none text-base bg-[#2f2f2f] text-content resize-y w-full focus:outline-none"
           />
-          <CalendarInput
+          <DateInput
+            label="Deadline"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            placeholder="Deadline"
           />
           {initialData?.id && (
             <SelectInput
@@ -82,8 +83,8 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
             />
           )}
           <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Save</Button>
+            <Button variant="outline" type="button" onClick={onClose} text="Cancel" />
+            <Button type="submit" text="Save" />
           </div>
         </form>
       </div>

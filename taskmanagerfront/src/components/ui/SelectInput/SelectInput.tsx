@@ -1,30 +1,49 @@
+import { useId } from 'react';
 import type { SelectHTMLAttributes } from 'react';
+import { FieldLabel, getFieldClassName } from '../fieldStyles';
+import type { FieldSize, FieldVariant } from '../fieldStyles';
 
-interface SelectOption {
+export interface SelectOption {
   value: string | number;
   label: string;
 }
 
-interface SelectInputProps extends SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectInputProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   label?: string;
   options?: SelectOption[];
-  className?: string;
+  size?: FieldSize;
+  variant?: FieldVariant;
+  fieldClassName?: string;
 }
 
-const SelectInput = ({ label, value, onChange, options = [], className = '', ...props }: SelectInputProps) => (
-  <div className={`flex flex-col gap-1 w-full ${className}`}>
-    {label && <label className="text-[0.9rem] text-content font-medium">{label}</label>}
-    <select
-      className="px-3 py-2.5 rounded-lg border border-divider bg-surface text-content text-[0.95rem] transition-colors focus:outline-none focus:border-accent"
-      value={value}
-      onChange={onChange}
-      {...props}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  </div>
-);
+const SelectInput = ({
+  id,
+  label,
+  options = [],
+  size = 'm',
+  variant = 'default',
+  className = '',
+  fieldClassName = '',
+  children,
+  ...props
+}: SelectInputProps) => {
+  const generatedId = useId();
+  const selectId = id ?? generatedId;
+
+  return (
+    <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
+      {label && <FieldLabel htmlFor={selectId}>{label}</FieldLabel>}
+      <select
+        {...props}
+        id={selectId}
+        className={`${getFieldClassName(size, variant)} cursor-pointer ${className}`}
+      >
+        {children ?? options.map(({ value, label: optionLabel }) => (
+          <option key={value} value={value}>{optionLabel}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 export default SelectInput;

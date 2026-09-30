@@ -8,6 +8,7 @@ import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
 import { HTTP_STATUS } from '../../config/api';
 import { MESSAGES } from '../../config/messages';
 import { Filter, TriangleAlert } from 'lucide-react';
+import { Input } from '../../components/ui/Input/Input';
 import type { Task, TaskFormData, ToastType } from '../../types';
 
 interface DashboardProps {
@@ -142,9 +143,10 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       <main className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto max-md:p-4">
         <header className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">My Tasks</h1>
-          <input
-            className="py-3 px-4 rounded-lg border border-divider bg-[#2e2d2b] text-content w-full max-w-[300px] placeholder:text-[#aaa] focus:outline-none max-md:max-w-[180px]"
-            type="text"
+          <Input
+            className="max-w-[300px] max-md:max-w-[180px]"
+            type="search"
+            aria-label="Search tasks"
             placeholder="Search tasks..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}

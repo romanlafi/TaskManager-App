@@ -1,29 +1,63 @@
 import type { ButtonHTMLAttributes } from 'react';
+import type { LucideIcon } from 'lucide-react';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'icon' | 'icon-danger';
+export type ButtonSize = 's' | 'm' | 'l';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: string;
+  text?: string;
+  icon?: LucideIcon;
+  size?: ButtonSize;
+  variant?: ButtonVariant;
   className?: string;
 }
 
-const BASE = 'w-full px-4 py-3 bg-accent text-content font-semibold text-base border-none rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/75 hover:scale-[1.02]';
+const BASE = 'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:pointer-events-none disabled:opacity-50';
 
-const getVariantClass = (variant: string): string => {
-  if (variant === 'icon danger') {
-    return 'bg-transparent border-none p-1 w-7 h-7 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:bg-[#b00020] rounded';
-  }
-  const map: Record<string, string> = {
-    default: '',
-    danger: 'bg-[#b00020] text-white hover:bg-[#c63a3a]',
-    outline: 'bg-transparent border border-accent text-accent hover:bg-accent/10',
-    icon: 'bg-transparent border-none p-1 w-7 h-7 flex items-center justify-center transition-all duration-200 hover:scale-110',
-  };
-  return variant.split(' ').map(v => map[v] ?? '').join(' ');
+const VARIANTS: Record<ButtonVariant, string> = {
+  primary: 'w-full bg-accent text-content hover:bg-accent/80 active:bg-accent/70',
+  secondary: 'w-full bg-[#48433e] text-content hover:bg-[#57514a] active:bg-[#625b53]',
+  outline: 'w-full border border-accent bg-transparent text-content hover:bg-accent/10 active:bg-accent/20',
+  danger: 'w-full bg-[#b00020] text-white hover:bg-[#c63a3a] active:bg-[#a52d2d]',
+  ghost: 'w-full bg-transparent text-content hover:bg-white/5 active:bg-white/10',
+  icon: 'rounded-lg bg-transparent text-content hover:bg-white/10 active:bg-white/15',
+  'icon-danger': 'rounded-lg bg-transparent text-[#ff8a8a] hover:bg-[#b00020]/20 hover:text-[#ffaaaa] active:bg-[#b00020]/30',
 };
 
-const Button = ({ children, className = '', variant = 'default', ...props }: ButtonProps) => (
-  <button className={`${BASE} ${getVariantClass(variant)} ${className}`} {...props}>
-    {children}
-  </button>
-);
+const SIZES: Record<ButtonSize, { button: string; text: string; icon: number }> = {
+  s: { button: 'min-h-8 px-3 text-sm', text: 'text-sm', icon: 16 },
+  m: { button: 'min-h-11 px-4 text-base', text: 'text-base', icon: 20 },
+  l: { button: 'min-h-13 px-5 text-lg', text: 'text-lg', icon: 24 },
+};
+
+const ICON_BUTTON_SIZES: Record<ButtonSize, string> = {
+  s: 'size-8',
+  m: 'size-10',
+  l: 'size-12',
+};
+
+const Button = ({
+  text,
+  icon: Icon,
+  size = 'm',
+  variant = 'primary',
+  className = '',
+  type = 'button',
+  ...props
+}: ButtonProps) => {
+  const iconOnly = variant === 'icon' || variant === 'icon-danger';
+  const sizeStyles = SIZES[size];
+
+  return (
+    <button
+      className={`${BASE} ${VARIANTS[variant]} ${iconOnly ? ICON_BUTTON_SIZES[size] : sizeStyles.button} ${className}`}
+      type={type}
+      {...props}
+    >
+      {Icon && <Icon aria-hidden="true" size={sizeStyles.icon} className="shrink-0" />}
+      {text && !iconOnly && <span className={sizeStyles.text}>{text}</span>}
+    </button>
+  );
+};
 
 export default Button;
