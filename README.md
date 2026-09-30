@@ -105,6 +105,20 @@ wrangler secret put JWT_SECRET
 
 ---
 
+## Tests and coverage
+
+Run from the repository root with Node.js 24. The backend tests use an in-memory SQLite database with the real D1 migrations; the frontend tests run in jsdom and exercise the application through user interactions, mocking only HTTP responses.
+
+```bash
+npm install
+npm test
+npm run test:backend
+npm run test:frontend
+npm run test:coverage
+```
+
+Coverage reports are written to `coverage/index.html` and `coverage/lcov.info` (used by SonarCloud). The coverage command fails if overall statements, branches, functions or lines fall below 95%.
+
 ## Technologies
 
 - **Cloudflare Workers** — serverless runtime
