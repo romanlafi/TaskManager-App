@@ -1,46 +1,30 @@
-# TaskManager en Cloudflare Workers
+# API de TaskManager en Cloudflare Workers
 
-Este directorio contiene la API TypeScript, las migraciones D1 y la configuración de despliegue. El Worker sirve también el `dist` generado por `taskmanagerfront`.
+Este workspace contiene la API TypeScript con Hono, la autenticación JWT, las migraciones de Cloudflare D1 y la configuración de Wrangler. El Worker también sirve el frontend compilado en `taskmanagerfront/dist` mediante el binding `ASSETS`.
 
-## Desarrollo local
+La [guía principal del proyecto](../README.md) documenta la instalación, la configuración local, las rutas de la API, los tests y el despliegue.
 
-```bash
-npm install
-npm run db:migrate:local
-npm run dev
-```
+## Comandos del workspace
 
-El frontend se puede ejecutar en otra terminal con:
+Los siguientes comandos se ejecutan desde este directorio (`cloudflare/`), una vez configurado `.dev.vars` a partir de `.dev.vars.example`:
 
-```bash
-cd ../taskmanagerfront
-npm run dev
-```
+| Comando | Función |
+| --- | --- |
+| `npm run dev` | Instala las dependencias de la raíz, compila el frontend, aplica migraciones locales e inicia Wrangler |
+| `npm run build` | Instala las dependencias de la raíz y compila el frontend |
+| `npm run typecheck` | Comprueba los tipos de la API sin emitir archivos |
+| `npm run db:migrate:local` | Aplica migraciones a la base D1 local |
+| `npm run db:migrate:remote` | Aplica migraciones a la base D1 de producción |
+| `npm run deploy` | Despliega el Worker y los assets compilados mediante Wrangler |
 
-El proxy de Vite envía `/api` a `http://127.0.0.1:8787`.
+Para desplegar, configura primero el `database_id` de producción en `wrangler.jsonc` y el secreto remoto `JWT_SECRET`. Ejecuta `npm run build`, `npm run db:migrate:remote` y `npm run deploy`, en ese orden.
 
-## Crear y configurar D1
+## Configuración
 
-Desde este directorio:
+- `DB`: binding de D1 para usuarios y tareas.
+- `ASSETS`: binding para servir el frontend compilado.
+- `JWT_SECRET`: secreto local en `.dev.vars`, excluido de Git; en producción se configura con `npx wrangler secret put JWT_SECRET`.
+- `JWT_ISSUER`: emisor del token, configurado como `taskmanager-app`.
+- `wrangler.preview-migrations.jsonc`: configuración de migraciones para la base independiente `taskmanager-db-staging`, usada por las previews.
 
-```bash
-npx wrangler d1 create taskmanager-db
-```
-
-Hay que copiar el `database_id` que devuelve el comando a `wrangler.jsonc`, sustituyendo `REPLACE_WITH_D1_DATABASE_ID`. Después:
-
-```bash
-npm run db:migrate:remote
-npx wrangler secret put JWT_SECRET
-```
-
-Antes de desplegar, generar el frontend:
-
-```bash
-cd ../taskmanagerfront
-npm run build
-cd ../cloudflare
-npm run deploy
-```
-
-El secreto local está en `.dev.vars` y está excluido por `.gitignore`.
+Los datos locales de Wrangler se guardan en `.wrangler/`. Para desarrollar la interfaz con recarga automática, ejecuta Vite en otra terminal siguiendo la guía principal; su proxy envía `/api` a `http://127.0.0.1:8787`.
