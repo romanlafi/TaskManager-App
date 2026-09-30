@@ -5,7 +5,9 @@
       "binding": "PREVIEW_DB",
       "database_name": "taskmanager-db-staging",
       "database_id": "c841464d-3ab7-4ef4-86d6-c70813701198",
-      "migrations_dir": "migrations"
+      "migrations_dir": "migrations",
+      "migrations_table": "d1_migrations",
+      "migrations_pattern": "migrations/*/migration.sql"
     }
   ]
 }
