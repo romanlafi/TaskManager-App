@@ -1,4 +1,3 @@
-import './App.css';
 import AuthForm from './pages/AuthForm/AuthForm';
 import Dashboard from './pages/Dashboard/Dashboard';
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';

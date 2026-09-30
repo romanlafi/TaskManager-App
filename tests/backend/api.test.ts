@@ -91,6 +91,21 @@ describe('registration and login', () => {
     expect(payload.exp! - payload.iat!).toBe(1800);
   });
 
+  it.each(['username', 'password'])('rejects a file uploaded as the %s credential', async (field) => {
+    const username = field === 'username' ? '[object File]' : 'alice';
+    const password = field === 'password' ? '[object File]' : 'password';
+    database.sqlite.prepare('UPDATE users SET username = ?, hashed_password = ? WHERE id = 1').run(username, hashSync(password, 4));
+
+    const form = new FormData();
+    form.append('username', username);
+    form.append('password', password);
+    form.set(field, new File(['credential'], 'credential.txt', { type: 'text/plain' }));
+
+    const response = await app.request('/api/users/token', { method: 'POST', body: form }, env);
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ detail: 'Invalid credentials' });
+  });
+
   it.each([{}, { username: 'alice' }, { username: 'missing', password: 'password' }, { username: 'alice', password: 'wrong' }])('rejects invalid credentials: %j', async (body) => {
     expect((await request('/users/token', 'POST', body)).status).toBe(401);
   });
@@ -177,7 +192,7 @@ describe('tasks', () => {
     ]) await request('/tasks/', 'POST', task);
     expect(await (await request('/tasks/?search=alp&status=done&before_deadline=2026-10-02')).json()).toEqual([expect.objectContaining({ title: 'Alpha' })]);
     expect(await (await request('/tasks/?order_by=title&skip=1&limit=1')).json()).toEqual([expect.objectContaining({ title: 'Alpha' })]);
-    expect((await (await request('/tasks/?skip=-1&limit=0&order_by=invalid&status=invalid')).json()).length).toBe(1);
-    expect((await (await request('/tasks/?limit=1000')).json()).length).toBe(4);
+    expect(await (await request('/tasks/?skip=-1&limit=0&order_by=invalid&status=invalid')).json()).toHaveLength(1);
+    expect(await (await request('/tasks/?limit=1000')).json()).toHaveLength(4);
   });
 });

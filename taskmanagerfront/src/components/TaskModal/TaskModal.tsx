@@ -40,7 +40,7 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
     }
   }, [isOpen, initialData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSave({ title, description, deadline, status });
   };

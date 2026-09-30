@@ -31,7 +31,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
     setPassword('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const action = isLogin ? loginUser : registerUser;
@@ -42,7 +42,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
           if (isLogin) {
             localStorage.setItem('access_token', data.access_token);
             showToast(MESSAGES.LOGIN_SUCCESS, 'success');
-            navigate('/dashboard');
+            void navigate('/dashboard');
           } else {
             showToast(MESSAGES.REGISTER_SUCCESS, 'success');
             resetForm();

@@ -12,7 +12,10 @@ async function parseLoginForm(c: UserContext) {
   const contentType = c.req.header('Content-Type') || '';
   if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
     const body = await c.req.parseBody();
-    return { username: String(body.username || ''), password: String(body.password || '') };
+    return {
+      username: typeof body.username === 'string' ? body.username : '',
+      password: typeof body.password === 'string' ? body.password : '',
+    };
   }
   return await c.req.json<{ username?: string; password?: string }>();
 }
@@ -28,7 +31,7 @@ async function register(c: UserContext) {
   if (existing) return c.json({ detail: 'Username already exists' }, 409);
 
   const hashedPassword = await hash(password, 10);
-  const result = await c.env.DB.prepare(
+  await c.env.DB.prepare(
     'INSERT INTO users (username, hashed_password) VALUES (?, ?)'
   ).bind(username, hashedPassword).run();
 
@@ -46,7 +49,7 @@ async function login(c: UserContext) {
     'SELECT id, username, hashed_password, is_active, role FROM users WHERE username = ?'
   ).bind(username).first<UserRow>();
 
-  if (!user || !user.is_active || !(await compare(password, user.hashed_password))) {
+  if (!user?.is_active || !(await compare(password, user.hashed_password))) {
     return c.json({ detail: 'Invalid credentials' }, 401);
   }
 

@@ -96,7 +96,7 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
-    navigate('/');
+    void navigate('/');
     showToast(MESSAGES.SESSION_ENDED, 'success');
   };
 
@@ -104,7 +104,18 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
   const openEditModal = (task: Task) => { setEditingTask(task); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditingTask(null); };
 
-  useEffect(() => { loadTasks(); }, [search, orderBy, status, beforeDeadline, limit]);
+  useEffect(() => { void loadTasks(); }, [search, orderBy, status, beforeDeadline, limit]);
+
+  useEffect(() => {
+    if (!showMobileFilters) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowMobileFilters(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showMobileFilters]);
 
   return (
     <div className="flex h-screen bg-bg text-content font-[Urbanist,sans-serif]">
@@ -120,7 +131,6 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       {/* Sidebar */}
       <aside
         className={`w-[280px] bg-surface border-r border-divider p-8 shadow-[inset_-2px_0_10px_rgba(0,0,0,0.1)] max-md:fixed max-md:top-0 max-md:h-screen max-md:z-[1000] max-md:w-[60%] max-md:transition-[left] max-md:duration-300 max-md:shadow-[2px_0_10px_rgba(0,0,0,0.3)] ${showMobileFilters ? 'max-md:left-0' : 'max-md:left-[-100%]'}`}
-        onKeyDown={(e) => e.key === 'Escape' && setShowMobileFilters(false)}
       >
         <FilterPanel
           orderBy={orderBy} setOrderBy={setOrderBy}

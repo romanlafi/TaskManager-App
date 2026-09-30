@@ -38,7 +38,7 @@ export const requireAuth = createMiddleware<{ Bindings: Env; Variables: { user: 
         'SELECT id, username, hashed_password, is_active, role FROM users WHERE id = ? AND username = ?'
       ).bind(userId, username).first<UserRow>();
 
-      if (!user || !user.is_active) return c.json({ detail: 'Invalid credentials' }, 401);
+      if (!user?.is_active) return c.json({ detail: 'Invalid credentials' }, 401);
 
       c.set('user', { id: user.id, username: user.username, role: user.role });
       await next();
