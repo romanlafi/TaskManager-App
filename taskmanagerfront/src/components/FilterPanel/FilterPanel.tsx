@@ -1,77 +1,56 @@
-import Button from '../ui/Button/Button';
+﻿import Button from '../ui/Button/Button';
 import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
-import { LogOut, Plus, RotateCcw } from 'lucide-react';
+import { RotateCcw, Search } from 'lucide-react';
+import { Input } from '../ui/Input/Input';
+import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
+import type { TaskFilters } from '../TaskViews/taskViewUtils';
 
 interface FilterPanelProps {
-  orderBy: string;
-  setOrderBy: (v: string) => void;
-  limit: number;
-  setLimit: (v: number) => void;
-  status: string;
-  setStatus: (v: string) => void;
-  beforeDeadline: string;
-  setBeforeDeadline: (v: string) => void;
-  resetFilters: () => void;
-  onCreate: () => void;
-  onLogout: () => void;
+  filters: TaskFilters;
+  onChange: (filters: TaskFilters) => void;
+  onReset: () => void;
 }
 
-const FilterPanel = ({
-  orderBy, setOrderBy, limit, setLimit, status, setStatus,
-  beforeDeadline, setBeforeDeadline, resetFilters, onCreate, onLogout,
-}: FilterPanelProps) => (
-  <div className="flex h-full flex-col gap-4 text-[0.95rem] text-content">
-    <div className="flex items-center justify-between">
-      <h2 className="text-lg font-semibold">Filters</h2>
-      <Button variant="minimal" onClick={resetFilters} icon={RotateCcw} text="Reset"/>
+export default function FilterPanel({ filters, onChange, onReset }: FilterPanelProps) {
+  return (
+    <div className="grid grid-cols-4 items-end gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+      <div className="relative col-span-full">
+        <Search
+          size={17}
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-3.5 left-3 text-content/40"
+        />
+        <Input
+          label="Search tasks"
+          type="search"
+          placeholder="Search by title or description..."
+          value={filters.search}
+          className="h-11 py-0 pl-10"
+          onChange={(e) => onChange({ ...filters, search: e.target.value })}
+        />
+      </div>
+      <SelectInput
+        label="Status"
+        className="h-11 py-0"
+        value={filters.status}
+        onChange={(e) => onChange({ ...filters, status: e.target.value })}
+        options={[{ value: '', label: 'All statuses' }, ...STATUS_OPTIONS]}
+      />
+      <SelectInput
+        label="Priority"
+        className="h-11 py-0"
+        value={filters.priority}
+        onChange={(e) => onChange({ ...filters, priority: e.target.value })}
+        options={[{ value: '', label: 'All priorities' }, ...PRIORITY_OPTIONS]}
+      />
+      <DateInput
+        label="Due on or before"
+        className="h-11 py-0"
+        value={filters.beforeDeadline}
+        onChange={(e) => onChange({ ...filters, beforeDeadline: e.target.value })}
+      />
+      <Button variant="ghost" icon={RotateCcw} text="Reset filters" className="h-11" onClick={onReset} />
     </div>
-
-    <SelectInput
-      label="Order by"
-      value={orderBy}
-      onChange={(e) => setOrderBy(e.target.value)}
-      options={[
-        { value: 'created_at', label: 'Created at' },
-        { value: 'title', label: 'Title' },
-        { value: 'status', label: 'Status' },
-        { value: 'deadline', label: 'Deadline' },
-      ]}
-    />
-
-    <SelectInput
-      label="Status"
-      value={status}
-      onChange={(e) => setStatus(e.target.value)}
-      options={[
-        { value: '', label: 'All' },
-        { value: 'pending', label: 'Pending' },
-        { value: 'in_progress', label: 'In Progress' },
-        { value: 'done', label: 'Completed' },
-      ]}
-    />
-
-    <DateInput
-      label="Before deadline"
-      value={beforeDeadline}
-      onChange={(e) => setBeforeDeadline(e.target.value)}
-    />
-
-    <SelectInput
-      label="Limit"
-      value={limit}
-      onChange={(e) => setLimit(Number(e.target.value))}
-      options={[
-        { value: 5, label: '5' },
-        { value: 10, label: '10' },
-        { value: 25, label: '25' },
-        { value: 50, label: '50' },
-      ]}
-    />
-
-    <Button onClick={onCreate} icon={Plus} text="Add Task" />
-    <Button onClick={onLogout} variant="secondary" icon={LogOut} text="Log out" className="mt-auto" />
-  </div>
-);
-
-export default FilterPanel;
+  );
+}

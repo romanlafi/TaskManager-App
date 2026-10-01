@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { requireAuth, currentUser } from '../auth';
-import type { AuthUser, Env, TaskInput, TaskRow, TaskStatus } from '../types';
+import type { AuthUser, Env, TaskInput, TaskRow, TaskStatus, TaskPriority } from '../types';
 
 type TaskContext = Context<{ Bindings: Env; Variables: { user: AuthUser } }>;
 const tasks = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
 const statuses = new Set<TaskStatus>(['pending', 'in_progress', 'done']);
-const orderFields = new Set(['created_at', 'title', 'description', 'deadline', 'status']);
+const orderFields = new Set(['created_at', 'title', 'description', 'deadline', 'status', 'priority']);
+const priorities = new Set<TaskPriority>(['low', 'medium', 'high']);
 
 function taskResponse(task: TaskRow) {
   return {
@@ -15,6 +16,7 @@ function taskResponse(task: TaskRow) {
     description: task.description,
     created_at: task.created_at,
     status: task.status,
+    priority: task.priority,
     deadline: task.deadline,
   };
 }
@@ -23,12 +25,22 @@ function validStatus(value: unknown): value is TaskStatus {
   return typeof value === 'string' && statuses.has(value as TaskStatus);
 }
 
+function validPriority(value: unknown): value is TaskPriority {
+  return typeof value === 'string' && priorities.has(value as TaskPriority);
+}
+
 async function listTasks(c: TaskContext) {
   const user = currentUser(c);
   const query = c.req.query();
   const skip = Math.max(Number(query.skip || 0), 0);
   const limit = Math.min(Math.max(Number(query.limit || 10), 1), 100);
+  if (!Number.isInteger(skip) || !Number.isInteger(limit)) {
+    return c.json({ detail: 'Invalid pagination' }, 400);
+  }
   const orderBy = orderFields.has(query.order_by) ? query.order_by : 'created_at';
+  const ordering = orderBy === 'priority'
+    ? "CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END"
+    : orderBy;
   const conditions = ['owner_id = ?'];
   const bindings: (string | number)[] = [user.id];
 
@@ -46,9 +58,9 @@ async function listTasks(c: TaskContext) {
   }
 
   const result = await c.env.DB.prepare(
-    `SELECT id, title, description, created_at, status, deadline, owner_id
+    `SELECT id, title, description, created_at, status, priority, deadline, owner_id
      FROM tasks WHERE ${conditions.join(' AND ')}
-     ORDER BY ${orderBy} ASC LIMIT ? OFFSET ?`
+     ORDER BY ${ordering} ASC, id ASC LIMIT ? OFFSET ?`
   ).bind(...bindings, limit, skip).all<TaskRow>();
 
   return c.json(result.results.map(taskResponse));
@@ -61,18 +73,19 @@ async function createTask(c: TaskContext) {
 
   if (!title) return c.json({ detail: 'Title is required' }, 400);
   if (body.status && !validStatus(body.status)) return c.json({ detail: 'Invalid task status' }, 400);
+  if (body.priority !== undefined && !validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
 
   const result = await c.env.DB.prepare(
-    `INSERT INTO tasks (title, description, status, deadline, owner_id)
-     VALUES (?, ?, ?, ?, ?) RETURNING id, title, description, created_at, status, deadline, owner_id`
-  ).bind(title, body.description || '', body.status || 'pending', body.deadline || null, user.id).first<TaskRow>();
+    `INSERT INTO tasks (title, description, status, priority, deadline, owner_id)
+     VALUES (?, ?, ?, ?, ?, ?) RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
+  ).bind(title, body.description || '', body.status || 'pending', body.priority ?? 'medium', body.deadline || null, user.id).first<TaskRow>();
 
   return c.json(taskResponse(result!), 201);
 }
 
 async function getTask(c: TaskContext) {
   const task = await c.env.DB.prepare(
-    'SELECT id, title, description, created_at, status, deadline, owner_id FROM tasks WHERE id = ? AND owner_id = ?'
+    'SELECT id, title, description, created_at, status, priority, deadline, owner_id FROM tasks WHERE id = ? AND owner_id = ?'
   ).bind(c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
   if (!task) return c.json({ detail: 'Task not found or unauthorized' }, 404);
   return c.json(taskResponse(task));
@@ -82,12 +95,13 @@ async function updateTask(c: TaskContext) {
   const body = await c.req.json<TaskInput>();
   if (!body.title?.trim()) return c.json({ detail: 'Title is required' }, 400);
   if (body.status && !validStatus(body.status)) return c.json({ detail: 'Invalid task status' }, 400);
+  if (body.priority !== undefined && !validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
 
   const result = await c.env.DB.prepare(
-    `UPDATE tasks SET title = ?, description = ?, status = ?, deadline = ?
+    `UPDATE tasks SET title = ?, description = ?, status = ?, priority = COALESCE(?, priority), deadline = ?
      WHERE id = ? AND owner_id = ?
-     RETURNING id, title, description, created_at, status, deadline, owner_id`
-  ).bind(body.title.trim(), body.description || '', body.status || 'pending', body.deadline || null,
+     RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
+  ).bind(body.title.trim(), body.description || '', body.status || 'pending', body.priority ?? null, body.deadline || null,
     c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
 
   if (!result) return c.json({ detail: 'Task not found or unauthorized' }, 404);
@@ -117,11 +131,16 @@ async function patchTask(c: TaskContext) {
     updates.push('deadline = ?');
     bindings.push(body.deadline || null);
   }
+  if (body.priority !== undefined) {
+    if (!validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
+    updates.push('priority = ?');
+    bindings.push(body.priority);
+  }
   if (!updates.length) return getTask(c);
 
   const result = await c.env.DB.prepare(
     `UPDATE tasks SET ${updates.join(', ')} WHERE id = ? AND owner_id = ?
-     RETURNING id, title, description, created_at, status, deadline, owner_id`
+     RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
   ).bind(...bindings, c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
 
   if (!result) return c.json({ detail: 'Task not found or unauthorized' }, 404);

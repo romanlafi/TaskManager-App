@@ -18,6 +18,7 @@
       "binding": "DB",
       "database_name": "taskmanager-db",
       "database_id": "ecd74d29-11e6-4215-9f1f-5e846d4f2218",
+      "preview_database_id": "c841464d-3ab7-4ef4-86d6-c70813701198",
       "migrations_dir": "migrations",
       "migrations_table": "d1_migrations",
       "migrations_pattern": "migrations/*/migration.sql"

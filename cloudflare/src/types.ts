@@ -1,5 +1,5 @@
-import type { TaskStatus } from '@taskmanager/types';
-export type { TaskStatus };
+import type { TaskStatus, TaskPriority } from '@taskmanager/types';
+export type { TaskStatus, TaskPriority };
 
 export interface Env {
   DB: D1Database;
@@ -23,6 +23,7 @@ export interface TaskRow {
   description: string;
   created_at: string;
   status: TaskStatus;
+  priority: TaskPriority;
   deadline: string | null;
   owner_id: number;
 }
@@ -37,5 +38,6 @@ export interface TaskInput {
   title: string;
   description?: string;
   status?: TaskStatus;
+  priority?: TaskPriority;
   deadline?: string | null;
 }

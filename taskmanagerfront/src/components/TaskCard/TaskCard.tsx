@@ -1,60 +1,89 @@
-import Button from '../ui/Button/Button';
-import { Pencil, Trash2 } from 'lucide-react';
-import type { TaskStatus } from '../../types';
+﻿import Button from '../ui/Button/Button';
+import { CalendarDays, Pencil, Trash2 } from 'lucide-react';
+import SelectInput from '../ui/SelectInput/SelectInput';
+import type { Task, TaskStatus } from '../../types';
+import { dateKey, PRIORITY_STYLE, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 
-interface TaskCardProps {
-  title: string;
-  description: string;
-  status: TaskStatus;
-  deadline: string | null;
-  created_at: string;
-  onEdit?: () => void;
-  onDelete?: () => void;
+interface TaskCardProps extends Task {
+  onEdit: () => void;
+  onDelete: () => void;
+  onStatusChange: (status: TaskStatus) => void;
+  disabled?: boolean;
 }
 
-const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString();
-
-const getStatusLabel = (status: TaskStatus) => {
-  switch (status) {
-    case 'pending':     return 'Pending';
-    case 'in_progress': return 'In Progress';
-    case 'done':        return 'Completed';
-  }
-};
-
-const statusBadge: Record<TaskStatus, string> = {
-  pending:     'bg-[#ffb300] text-[#1f1f1f]',
-  in_progress: 'bg-[#42a5f5] text-[#1f1f1f]',
-  done:        'bg-[#66bb6a] text-[#1f1f1f]',
-};
-
-const TaskCard = ({ title, description, status, deadline, created_at, onEdit, onDelete }: TaskCardProps) => (
-  <div className="bg-surface text-content p-4 rounded-xl shadow-[0_2px_6px_rgba(0,0,0,0.15)] flex flex-col gap-2 transition-transform duration-200 relative hover:scale-[1.01]">
-    <div className="flex justify-between items-center">
-      <h3 className="font-semibold text-base">{title}</h3>
-      <span className={`text-[0.85rem] px-2 py-0.5 rounded-lg font-medium capitalize ${statusBadge[status]}`}>
-        {getStatusLabel(status)}
-      </span>
-    </div>
-
-    <p className="text-[0.95rem] leading-[1.4]">{description}</p>
-
-    <div className="flex gap-4 text-[0.8rem] opacity-80 mt-2">
-      <span><strong>Created:</strong> {formatDate(created_at)}</span>
-      {deadline && <span><strong>Deadline:</strong> {formatDate(deadline)}</span>}
-    </div>
-
-    {(onEdit || onDelete) && (
-      <div className="absolute bottom-4 right-4 flex flex-col gap-1.5 items-end">
-        {onDelete && (
-          <Button variant="icon-danger" icon={Trash2} size="s" onClick={onDelete} aria-label="Delete task" title="Delete task" />
-        )}
-        {onEdit && (
-          <Button variant="icon" icon={Pencil} size="s" onClick={onEdit} aria-label="Edit task" title="Edit task" />
-        )}
+export default function TaskCard({
+  title,
+  description,
+  status,
+  priority,
+  deadline,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  disabled,
+}: TaskCardProps) {
+  const overdue = deadline && deadline.slice(0, 10) < dateKey(new Date()) && status !== 'done';
+  return (
+    <article
+      className={
+        'flex flex-col gap-3 rounded-xl border border-divider bg-surface p-4 transition-colors hover:border-accent/60 ' +
+        (disabled ? 'opacity-60' : '')
+      }
+    >
+      <div className="flex items-start justify-between gap-3">
+        <button
+          onClick={onEdit}
+          disabled={disabled}
+          className="min-w-0 cursor-pointer text-left font-semibold break-words hover:text-accent focus-visible:outline-accent"
+        >
+          {title}
+        </button>
+        <span className={'shrink-0 rounded-md px-2 py-1 text-xs font-medium ' + PRIORITY_STYLE[priority]}>
+          {priority[0].toUpperCase() + priority.slice(1)}
+        </span>
       </div>
-    )}
-  </div>
-);
-
-export default TaskCard;
+      {description && <p className="line-clamp-2 text-sm leading-relaxed text-content/60 break-words">{description}</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-divider pt-3">
+        <SelectInput
+          aria-label={'Status for ' + title}
+          value={status}
+          disabled={disabled}
+          size="s"
+          fieldClassName="!w-auto max-w-full"
+          onChange={(e) => onStatusChange(e.target.value as TaskStatus)}
+          className="h-8 rounded-md !bg-bg py-0 pl-2 text-xs"
+          options={STATUS_OPTIONS}
+        />
+        <div className="flex items-center gap-1">
+          <Button
+            variant="icon"
+            icon={Pencil}
+            size="s"
+            onClick={onEdit}
+            disabled={disabled}
+            aria-label={'Edit ' + title}
+          />
+          <Button
+            variant="icon-danger"
+            icon={Trash2}
+            size="s"
+            onClick={onDelete}
+            disabled={disabled}
+            aria-label={'Delete ' + title}
+          />
+        </div>
+      </div>
+      {deadline && (
+        <span className={'flex items-center gap-1.5 text-xs ' + (overdue ? 'text-rose-300' : 'text-content/50')}>
+          <CalendarDays size={14} aria-hidden="true" />
+          {new Date(deadline.slice(0, 10) + 'T00:00:00').toLocaleDateString(undefined, {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+          {overdue && ' · Overdue'}
+        </span>
+      )}
+    </article>
+  );
+}
