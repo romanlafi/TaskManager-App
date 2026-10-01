@@ -6,6 +6,7 @@ export interface Env {
   ASSETS: Fetcher;
   JWT_SECRET: string;
   JWT_ISSUER?: string;
+  FRONTEND_ORIGIN?: string;
 }
 
 export interface UserRow {

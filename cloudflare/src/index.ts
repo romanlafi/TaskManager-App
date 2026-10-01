@@ -6,12 +6,16 @@ import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('/api/*', cors({ origin: '*' }));
+app.use('/api/*', cors({
+  origin: (origin, c) => origin === new URL(c.req.url).origin || origin === c.env.FRONTEND_ORIGIN ? origin : null,
+  credentials: true,
+}));
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 app.route('/api', users);
 app.route('/api', tasks);
 
 app.notFound(async (c) => {
+  if (c.req.path === '/api' || c.req.path.startsWith('/api/')) return c.json({ detail: 'Not found' }, 404);
   if (c.env.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
   return c.json({ detail: 'Not found' }, 404);
 });

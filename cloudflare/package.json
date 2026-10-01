@@ -8,7 +8,8 @@
     "build": "npm install --prefix .. && npm --prefix ../taskmanagerfront run build",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply taskmanager-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply taskmanager-db --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply taskmanager-db --remote",
+    "db:migrate:preview": "wrangler d1 migrations apply PREVIEW_DB --remote --config wrangler.preview-migrations.jsonc"
   },
   "dependencies": {
     "@taskmanager/types": "*",

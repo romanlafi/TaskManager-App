@@ -1,10 +1,16 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { compare, hash } from 'bcryptjs';
-import { createAccessToken } from '../auth';
+import { refreshSession, revokeSession, sessionResponse, startSession, trustedOrigin } from '../sessions';
 import type { Env, UserRow } from '../types';
 
 const users = new Hono<{ Bindings: Env }>();
+
+users.use('/users/*', async (c, next) => {
+  c.header('Cache-Control', 'no-store');
+  if (!trustedOrigin(c)) return c.json({ detail: 'Untrusted origin' }, 403);
+  await next();
+});
 
 type UserContext = Context<{ Bindings: Env }>;
 
@@ -53,14 +59,23 @@ async function login(c: UserContext) {
     return c.json({ detail: 'Invalid credentials' }, 401);
   }
 
-  return c.json({
-    access_token: await createAccessToken(user, c.env),
-    token_type: 'bearer',
-  });
+  return c.json(await startSession(c, user));
 }
 
 users.post('/users', register);
 users.post('/users/', register);
 users.post('/users/token', login);
+users.post('/users/refresh', async (c) => {
+  const user = await refreshSession(c);
+  if (!user) {
+    await revokeSession(c);
+    return c.json({ detail: 'Session expired' }, 401);
+  }
+  return c.json(await sessionResponse(user, c.env, user.session_id));
+});
+users.post('/users/logout', async (c) => {
+  await revokeSession(c);
+  return c.body(null, 204);
+});
 
 export default users;

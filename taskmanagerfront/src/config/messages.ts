@@ -11,6 +11,7 @@ export const MESSAGES = {
 
   SESSION_EXPIRED_ERROR: 'Session expired',
   SESSION_ENDED: 'Session closed',
+  LOGOUT_ERROR: 'Signed out locally, but the server could not revoke the session. Please try again when connected.',
 
   REGISTER_SUCCESS: 'Registration complete. You can now log in.',
   REGISTER_CONFLICT: 'Username already exists',

@@ -14,6 +14,7 @@ Los siguientes comandos se ejecutan desde este directorio (`cloudflare/`), una v
 | `npm run build` | Instala las dependencias de la raíz y compila el frontend |
 | `npm run typecheck` | Comprueba los tipos de la API sin emitir archivos |
 | `npm run db:migrate:local` | Aplica migraciones a la base D1 local |
+| `npm run db:migrate:preview` | Aplica migraciones a la base D1 de staging para Workers Previews |
 | `npm run db:migrate:remote` | Aplica migraciones a la base D1 de producción |
 | `npm run deploy` | Despliega el Worker y los assets compilados mediante Wrangler |
 
@@ -27,4 +28,4 @@ Para desplegar, configura primero el `database_id` de producción en `wrangler.j
 - `JWT_ISSUER`: emisor del token, configurado como `taskmanager-app`.
 - `wrangler.preview-migrations.jsonc`: configuración de migraciones para la base independiente `taskmanager-db-staging`, usada por las previews.
 
-Los datos locales de Wrangler se guardan en `.wrangler/`. Para desarrollar la interfaz con recarga automática, ejecuta Vite en otra terminal siguiendo la guía principal; su proxy envía `/api` a `http://127.0.0.1:8787`.
+Los datos locales de Wrangler se guardan en `.wrangler/`. Para desarrollar la interfaz con recarga automática, ejecuta Vite en otra terminal siguiendo la guía principal; su proxy envía `/api` a `http://127.0.0.1:8799`. El Worker de TaskManager utiliza el puerto 8799 para evitar conflictos con otros proyectos que usan el puerto 8787 predeterminado de Wrangler.

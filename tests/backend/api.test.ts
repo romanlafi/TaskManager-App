@@ -30,9 +30,9 @@ afterEach(() => database.sqlite.close());
 
 describe('worker', () => {
   it('returns health and CORS headers', async () => {
-    const response = await request('/health');
+    const response = await app.request('/api/health', { headers: { Origin: 'http://localhost' } }, env);
     expect(await response.json()).toEqual({ status: 'ok' });
-    expect(response.headers.get('access-control-allow-origin')).toBe('*');
+    expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost');
   });
 
   it('serves assets and returns a JSON 404 without assets', async () => {
@@ -128,7 +128,7 @@ describe('authentication', () => {
     { sub: 'missing', userId: 1 },
     { sub: 'alice', userId: 999 },
   ])('rejects unusable token claims %j', async (claims) => {
-    const invalid = await new SignJWT(claims).setProtectedHeader({ alg: 'HS256' }).setIssuer('taskmanager-app').sign(new TextEncoder().encode(env.JWT_SECRET));
+    const invalid = await new SignJWT(claims).setProtectedHeader({ alg: 'HS256' }).setIssuer('taskmanager-app').setIssuedAt().setExpirationTime('30m').sign(new TextEncoder().encode(env.JWT_SECRET));
     expect((await request('/tasks/', 'GET', undefined, `Bearer ${invalid}`)).status).toBe(401);
   });
 
@@ -136,7 +136,7 @@ describe('authentication', () => {
     env.JWT_ISSUER = 'custom-issuer';
     token = await createAccessToken({ id: 1, username: 'alice', role: 'User' }, env);
     expect((await request('/tasks/')).status).toBe(200);
-    const expired = await new SignJWT({ sub: 'alice', userId: 1 }).setProtectedHeader({ alg: 'HS256' }).setIssuer(env.JWT_ISSUER).setExpirationTime(0).sign(new TextEncoder().encode(env.JWT_SECRET));
+    const expired = await new SignJWT({ sub: 'alice', userId: 1 }).setProtectedHeader({ alg: 'HS256' }).setIssuer(env.JWT_ISSUER).setIssuedAt().setExpirationTime(0).sign(new TextEncoder().encode(env.JWT_SECRET));
     expect((await request('/tasks/', 'GET', undefined, `Bearer ${expired}`)).status).toBe(401);
   });
 });

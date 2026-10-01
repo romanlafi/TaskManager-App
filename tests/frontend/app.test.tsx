@@ -3,9 +3,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import App from '../../taskmanagerfront/src/App';
 import { MESSAGES } from '../../taskmanagerfront/src/config/messages';
+import { testToken } from './helpers/token';
 
 const task = { id: 1, title: 'Existing task', description: 'Details', status: 'pending', deadline: '2026-10-01', created_at: '2026-09-01' };
 let fetchMock: ReturnType<typeof vi.fn>;
+let sessionToken: string;
+let newToken: string;
 
 function reply(data: unknown, status = 200) {
   return { status, json: async () => data };
@@ -15,6 +18,9 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/');
   fetchMock = vi.fn().mockResolvedValue(reply([]));
   vi.stubGlobal('fetch', fetchMock);
+  localStorage.setItem('auth_state', 'out:test');
+  sessionToken = testToken();
+  newToken = testToken('new-login');
 });
 
 async function submitAuth(register = false) {
@@ -26,7 +32,8 @@ async function submitAuth(register = false) {
 }
 
 function dashboard() {
-  localStorage.setItem('access_token', 'session-token');
+  localStorage.setItem('access_token', sessionToken);
+  localStorage.setItem('auth_state', 'in:test');
   window.history.replaceState({}, '', '/dashboard');
   return render(<App />);
 }
@@ -41,18 +48,18 @@ describe('authentication flows', () => {
   });
 
   it('logs in, stores the token and loads the dashboard', async () => {
-    fetchMock.mockResolvedValueOnce(reply({ access_token: 'new-token' }));
+    fetchMock.mockResolvedValueOnce(reply({ access_token: newToken }));
     render(<App />);
     await submitAuth();
     expect(await screen.findByRole('heading', { name: 'My Tasks' })).toBeInTheDocument();
-    expect(localStorage.getItem('access_token')).toBe('new-token');
+    expect(localStorage.getItem('access_token')).toBe(newToken);
     expect(screen.getByText(MESSAGES.LOGIN_SUCCESS)).toBeInTheDocument();
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe('/api/users/token');
     expect(options.method).toBe('POST');
     expect(options.body.get('username')).toBe('alice');
     expect(options.body.get('password')).toBe('password');
-    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining('/api/tasks/'), expect.objectContaining({ headers: { Authorization: 'Bearer new-token' } })));
+    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith(expect.stringContaining('/api/tasks/'), expect.objectContaining({ headers: { Authorization: `Bearer ${newToken}` } })));
   });
 
   it.each([200, 201])('registers with status %s and resets the form', async (status) => {
@@ -192,7 +199,7 @@ describe('dashboard flows', () => {
     await user.click(screen.getByRole('button', { name: 'Delete', exact: true }));
     expect(await screen.findByText(MESSAGES.TASK_DELETED)).toBeInTheDocument();
     expect(await screen.findByText('No tasks found.')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/tasks/1', expect.objectContaining({ method: 'DELETE', headers: { Authorization: 'Bearer session-token' } }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/tasks/1', expect.objectContaining({ method: 'DELETE', headers: { Authorization: `Bearer ${sessionToken}` } }));
   });
 
   it('keeps the task and closes confirmation if deletion fails', async () => {
@@ -238,10 +245,10 @@ describe('dashboard flows', () => {
   });
 
   it('clears expired sessions and redirects to login', async () => {
-    fetchMock.mockResolvedValueOnce(reply({}, 401));
+    fetchMock.mockResolvedValueOnce(reply({}, 401)).mockResolvedValueOnce(reply({}, 401));
     dashboard();
     expect(await screen.findByText(MESSAGES.SESSION_EXPIRED_ERROR)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Log In' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Log In' })).toBeInTheDocument();
     expect(localStorage.getItem('access_token')).toBeNull();
   });
 
@@ -251,9 +258,10 @@ describe('dashboard flows', () => {
     await screen.findByText('No tasks found.');
     await user.click(screen.getByRole('button', { name: 'Log out' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(localStorage.getItem('access_token')).toBe('session-token');
+    expect(localStorage.getItem('access_token')).toBe(sessionToken);
     await user.click(screen.getByRole('button', { name: 'Log out' }));
     const modal = screen.getByRole('heading', { name: 'Logout' }).parentElement!;
+    fetchMock.mockResolvedValueOnce(reply(null, 204));
     await user.click(within(modal).getByRole('button', { name: 'Log out' }));
     expect(await screen.findByText(MESSAGES.SESSION_ENDED)).toBeInTheDocument();
     expect(localStorage.getItem('access_token')).toBeNull();

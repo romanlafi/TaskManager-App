@@ -8,7 +8,8 @@ TaskManager is a full-stack application for managing personal tasks, built with 
 
 ## Features
 
-- Username/password registration and login, with bcrypt password hashing and JWT access tokens.
+- Username/password registration and login, with bcrypt password hashing, JWT access tokens and renewable browser sessions.
+- Session restoration on reload, synchronized login/logout across tabs and server-side session revocation.
 - Personal task lists: each user can only access their own tasks.
 - Create, view, edit and delete tasks with a title, description and optional deadline.
 - Three task statuses: `pending`, `in_progress` and `done`.
@@ -86,6 +87,7 @@ The resulting file contains:
 
 ```dotenv
 JWT_SECRET=replace-with-a-long-random-secret
+FRONTEND_ORIGIN=http://localhost:5173
 ```
 
 `cloudflare/.dev.vars` is ignored by Git. The JWT issuer defaults to `taskmanager-app` and is also configured in `cloudflare/wrangler.jsonc`.
@@ -96,7 +98,7 @@ JWT_SECRET=replace-with-a-long-random-secret
 npm run dev --workspace cloudflare
 ```
 
-This script installs dependencies, builds the frontend, applies local D1 migrations and starts Wrangler. Open [http://localhost:8787](http://localhost:8787), register an account, then log in.
+This script installs dependencies, builds the frontend, applies local D1 migrations and starts Wrangler. Open [http://localhost:8799](http://localhost:8799), register an account, then log in.
 
 Local D1 state is stored under `cloudflare/.wrangler/` and is separate from the remote database.
 
@@ -108,7 +110,7 @@ Keep the Worker running and start Vite in a second terminal:
 npm run dev --workspace taskmanagerfront
 ```
 
-Open the URL printed by Vite, normally [http://localhost:5173](http://localhost:5173). Its development proxy forwards `/api` requests to `http://127.0.0.1:8787`.
+Open the URL printed by Vite, normally [http://localhost:5173](http://localhost:5173). Its development proxy forwards `/api` requests to `http://127.0.0.1:8799`. TaskManager uses port 8799 for its Worker to avoid conflicts with other projects using Wrangler's default port 8787. Set `FRONTEND_ORIGIN=http://localhost:5173` in `cloudflare/.dev.vars` (included in the template); if Vite uses another port, update this value to the URL you open in the browser and restart the Worker.
 
 Wrangler serves the compiled frontend; use Vite for immediate frontend updates while developing.
 
@@ -118,6 +120,7 @@ Wrangler serves the compiled frontend; use Vite for immediate frontend updates w
 | --- | --- | --- |
 | `JWT_SECRET` | `cloudflare/.dev.vars` locally; Worker secret remotely | Signs and verifies JWTs |
 | `JWT_ISSUER` | `cloudflare/wrangler.jsonc` | Expected token issuer; defaults to `taskmanager-app` |
+| `FRONTEND_ORIGIN` | Optional Worker variable | Exact additional frontend origin allowed for authentication and credentialed CORS |
 | `VITE_API_URL` | Frontend build environment | Optional API base URL, including `/api`; defaults to `/api` |
 | `DB` | Wrangler D1 binding | Database used by the API |
 | `ASSETS` | Wrangler asset binding | Serves `taskmanagerfront/dist` |
@@ -133,6 +136,8 @@ All endpoints are under `/api`. Task endpoints require an `Authorization: Bearer
 | `GET` | `/api/health` | Returns `{"status":"ok"}` |
 | `POST` | `/api/users/` | Registers a user; returns username and role with HTTP 201 |
 | `POST` | `/api/users/token` | Logs in; returns `access_token` and `token_type` |
+| `POST` | `/api/users/refresh` | Renews the access token using the browser's refresh cookie |
+| `POST` | `/api/users/logout` | Revokes the browser session and clears its refresh cookie; returns HTTP 204 |
 | `GET` | `/api/tasks/` | Lists the current user's tasks |
 | `POST` | `/api/tasks/` | Creates a task with HTTP 201 |
 | `GET` | `/api/tasks/{task_id}` | Retrieves one owned task |
@@ -140,7 +145,33 @@ All endpoints are under `/api`. Task endpoints require an `Authorization: Bearer
 | `PATCH` | `/api/tasks/{task_id}` | Updates only supplied task fields |
 | `DELETE` | `/api/tasks/{task_id}` | Deletes an owned task |
 
-Registration accepts JSON with `username` and `password`. Login accepts those fields as JSON, URL-encoded form data or multipart form data. Access tokens expire after **30 minutes**; the frontend stores them in `localStorage` and clears the session when loading tasks returns HTTP 401.
+Registration accepts JSON with `username` and `password`. Login accepts those fields as JSON, URL-encoded form data or multipart form data. Login and refresh return `access_token`, `token_type` and `expires_in` (1800 seconds).
+
+Access tokens expire after **30 minutes** and are cached in `localStorage`. The refresh credential is an opaque random token in a **HttpOnly, SameSite=Strict** cookie scoped to `/api/users`, with `Secure` enabled over HTTPS. Only its SHA-256 hash is stored in D1. Browser sessions expire **30 days after login**; renewal does not extend this deadline or rotate the refresh cookie, so concurrent tabs can renew independently.
+
+The frontend restores the session before routing when the cached token is missing, malformed or expired. Authenticated requests renew on HTTP 401 and retry once; concurrent requests within a tab share one renewal. Network errors and HTTP 5xx preserve the session and allow retry. Logout and account changes are synchronized across tabs, and responses from a previous session are discarded. An offline logout still clears local authentication and blocks automatic restoration, but cannot revoke the server session until connectivity returns or the browser logs in again.
+
+New access tokens are tied to a D1 session, so logout invalidates both their access and refresh credentials. Previously issued JWTs without a session claim remain usable until their original expiry; users with those tokens need to log in once to obtain renewable sessions.
+
+The default `/api` configuration serves the frontend and API from the same origin. Authentication endpoints validate `Origin`; for a separate frontend on the **same site**, configure its exact origin as `FRONTEND_ORIGIN` and rebuild with `VITE_API_URL`. Cross-site cookie authentication is not supported by the Strict cookie policy. Unknown API routes always return a JSON 404; frontend routes fall back to `index.html`, including direct navigation to `/dashboard`.
+
+Apply the new `0002_sessions` migration before running or deploying this version:
+
+```bash
+npm run db:migrate:local --workspace cloudflare
+```
+
+For production, apply the remote migrations before deploying the Worker. The local `dev` script already applies pending migrations.
+
+Before testing a Worker Preview from a non-production branch such as `staging`, apply migrations to its separate staging database:
+
+```bash
+npm run db:migrate:preview --workspace cloudflare
+```
+
+This command targets `taskmanager-db-staging` through `wrangler.preview-migrations.jsonc`; it does not modify the production database. It must succeed before the Preview uses the new session routes.
+
+GitHub Actions only runs tests and SonarQube analysis. A push deploys a Cloudflare Preview only if Workers Builds is connected to this repository and Preview Builds are enabled. Configure the build commands and project root to include the frontend build, and set a Preview `JWT_SECRET` and the staging D1 binding. Current Worker Previews do not inherit production secrets. Check whether `staging` is configured as the production branch: pushes to that branch deploy the active Worker if it is.
 
 ### Task payloads
 

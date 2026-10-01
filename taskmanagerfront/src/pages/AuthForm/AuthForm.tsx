@@ -18,6 +18,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const showToast = (message: string, type: ToastType) => {
@@ -33,6 +34,8 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const action = isLogin ? loginUser : registerUser;
       const { status, data } = await action(username, password);
@@ -40,9 +43,8 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
       const handlers: Record<number, () => void> = {
         [HTTP_STATUS.SUCCESS]: () => {
           if (isLogin) {
-            localStorage.setItem('access_token', data.access_token);
             showToast(MESSAGES.LOGIN_SUCCESS, 'success');
-            void navigate('/dashboard');
+            void navigate('/dashboard', { replace: true });
           } else {
             showToast(MESSAGES.REGISTER_SUCCESS, 'success');
             resetForm();
@@ -59,6 +61,8 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
     } catch (err) {
       console.error(err);
       showToast(MESSAGES.SERVER_ERROR, 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -70,22 +74,29 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
         <form onSubmit={handleSubmit} className="flex flex-col items-center justify-center gap-4 w-full max-sm:gap-3">
           <Input
             label="Username"
+            name="username"
+            autoComplete="username"
+            required
             placeholder="Enter your username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
           <Input
             label="Password"
+            name="password"
+            autoComplete={isLogin ? 'current-password' : 'new-password'}
+            required
             type="password"
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" text={isLogin ? 'Log In' : 'Register'} icon={isLogin ? LogIn : UserPlus} />
+          <Button type="submit" disabled={submitting} text={isLogin ? 'Log In' : 'Register'} icon={isLogin ? LogIn : UserPlus} />
         </form>
 
         <button
           type="button"
+          disabled={submitting}
           className="bg-transparent border-none p-0 w-full text-center mt-6 text-sm text-[#a08060] cursor-pointer transition-opacity hover:underline hover:opacity-80 max-sm:text-[13px]"
           onClick={() => setIsLogin(!isLogin)}
         >

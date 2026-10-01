@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createTask, deleteTask, fetchTasks, updateTask } from '../../services/taskService';
 import TaskCard from '../../components/TaskCard/TaskCard';
 import FilterPanel from '../../components/FilterPanel/FilterPanel';
 import TaskModal from '../../components/TaskModal/TaskModal';
 import ConfirmModal from '../../components/ConfirmModal/ConfirmModal';
-import { HTTP_STATUS } from '../../config/api';
+import { HttpError, isCancelled } from '../../services/http';
+import { logoutSession, SessionExpiredError } from '../../services/session';
 import { MESSAGES } from '../../config/messages';
 import { Filter, LogOut, Trash2, TriangleAlert } from 'lucide-react';
 import { Input } from '../../components/ui/Input/Input';
@@ -32,35 +32,32 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const navigate = useNavigate();
+  const taskRequest = useRef<AbortController | null>(null);
 
-  const showToast = (message: string, type: ToastType) => {
+  const showToast = useCallback((message: string, type: ToastType) => {
     setToastMessage(message);
     setToastType(type);
-  };
+  }, [setToastMessage, setToastType]);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
+    taskRequest.current?.abort();
+    const controller = new AbortController();
+    taskRequest.current = controller;
     setLoading(true);
     setError(null);
     try {
-      const { status: responseStatus, data } = await fetchTasks(skip, limit, search, orderBy, status, beforeDeadline);
-      if (responseStatus === HTTP_STATUS.UNAUTHORIZED) {
-        handleLogout();
-        showToast(MESSAGES.SESSION_EXPIRED_ERROR, 'error');
-        return;
-      }
-      if (responseStatus === HTTP_STATUS.SUCCESS) {
-        setTasks(data);
-      } else {
-        setError('Could not fetch tasks.');
-      }
+      const { data } = await fetchTasks(skip, limit, search, orderBy, status, beforeDeadline, controller.signal);
+      if (!controller.signal.aborted) setTasks(data);
     } catch (err) {
+      if (controller.signal.aborted || isCancelled(err) || err instanceof SessionExpiredError) return;
+      setError('Could not fetch tasks.');
+      if (err instanceof HttpError) return;
       console.error(err);
       showToast(MESSAGES.SERVER_ERROR, 'error');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  };
+  }, [skip, limit, search, orderBy, status, beforeDeadline, showToast]);
 
   const handleSaveTask = async (data: TaskFormData) => {
     try {
@@ -74,7 +71,8 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       await loadTasks();
       closeModal();
     } catch (err) {
-      showToast(MESSAGES.SERVER_ERROR, 'error');
+      if (isCancelled(err) || err instanceof SessionExpiredError) return;
+      showToast(err instanceof HttpError ? err.message : MESSAGES.SERVER_ERROR, 'error');
       console.error(err);
     }
   };
@@ -86,25 +84,32 @@ const Dashboard = ({ setToastMessage, setToastType }: DashboardProps) => {
       showToast(MESSAGES.TASK_DELETED, 'success');
       await loadTasks();
     } catch (err) {
+      if (isCancelled(err) || err instanceof SessionExpiredError) return;
       console.error(err);
-      showToast(MESSAGES.UNEXPECTED_ERROR, 'error');
+      showToast(err instanceof HttpError ? err.message : MESSAGES.UNEXPECTED_ERROR, 'error');
     } finally {
       setShowConfirm(false);
       setTaskToDelete(null);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    void navigate('/');
-    showToast(MESSAGES.SESSION_ENDED, 'success');
+  const handleLogout = async () => {
+    try {
+      await logoutSession();
+      showToast(MESSAGES.SESSION_ENDED, 'success');
+    } catch (err) {
+      if (!isCancelled(err)) showToast(MESSAGES.LOGOUT_ERROR, 'error');
+    }
   };
 
   const openCreateModal = () => { setEditingTask(null); setShowModal(true); };
   const openEditModal = (task: Task) => { setEditingTask(task); setShowModal(true); };
   const closeModal = () => { setShowModal(false); setEditingTask(null); };
 
-  useEffect(() => { void loadTasks(); }, [search, orderBy, status, beforeDeadline, limit]);
+  useEffect(() => {
+    void loadTasks();
+    return () => taskRequest.current?.abort();
+  }, [loadTasks]);
 
   useEffect(() => {
     if (!showMobileFilters) return;
