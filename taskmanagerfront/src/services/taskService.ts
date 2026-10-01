@@ -1,71 +1,44 @@
-import { API_ENDPOINTS, HTTP_METHODS } from '../config/api';
-import type { Task, TaskStatus } from '../types';
+﻿import { API_ENDPOINTS } from '../config/api';
+import type { Task, TaskFormData, TaskStatus } from '../types';
 
-const getToken = () => localStorage.getItem('access_token');
+export class TaskRequestError extends Error {
+  constructor(public status: number) {
+    super('Task request failed (' + status + ')');
+  }
+}
 
-export const fetchTasks = async (
-  skip: number,
-  limit: number,
-  search: string,
-  orderBy: string,
-  status: string,
-  beforeDeadline: string,
-) => {
-  const params = new URLSearchParams({
-    skip: String(skip),
-    limit: String(limit),
-    search,
-    order_by: orderBy,
-  });
-  if (status) params.append('status', status);
-  if (beforeDeadline) params.append('before_deadline', beforeDeadline);
-
-  const response = await fetch(`${API_ENDPOINTS.TASKS}?${params.toString()}`, {
-    method: HTTP_METHODS.GET,
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-
-  const data: Task[] = await response.json();
-  return { status: response.status, data };
-};
-
-export const createTask = async (
-  title: string,
-  description: string,
-  deadline: string,
-): Promise<Task> => {
-  const response = await fetch(API_ENDPOINTS.TASKS, {
-    method: HTTP_METHODS.POST,
+async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
     headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
+      Authorization: 'Bearer ' + localStorage.getItem('access_token'),
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
     },
-    body: JSON.stringify({ title, description, deadline }),
   });
+  if (!response.ok) throw new TaskRequestError(response.status);
   return response.json();
-};
+}
 
-export const deleteTask = async (taskId: number): Promise<void> => {
-  await fetch(`${API_ENDPOINTS.TASKS}${taskId}`, {
-    method: HTTP_METHODS.DELETE,
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-};
+// Load every page so the board and calendar never silently omit tasks.
+export async function fetchTasks(signal?: AbortSignal): Promise<Task[]> {
+  const tasks: Task[] = [];
+  const pageSize = 100;
+  for (let skip = 0; ; skip += pageSize) {
+    const params = new URLSearchParams({ skip: String(skip), limit: String(pageSize), order_by: 'created_at' });
+    const page = await request<Task[]>(API_ENDPOINTS.TASKS + '?' + params, { signal });
+    tasks.push(...page);
+    if (page.length < pageSize) return tasks;
+  }
+}
 
-export const updateTask = async (
-  taskId: number,
-  title: string,
-  description: string,
-  status: TaskStatus,
-  deadline: string,
-): Promise<Task> => {
-  const response = await fetch(`${API_ENDPOINTS.TASKS}${taskId}`, {
-    method: HTTP_METHODS.PUT,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify({ title, description, status, deadline }),
-  });
-  return response.json();
-};
+export const createTask = (data: TaskFormData) =>
+  request<Task>(API_ENDPOINTS.TASKS, { method: 'POST', body: JSON.stringify(data) });
+
+export const updateTask = (id: number, data: TaskFormData) =>
+  request<Task>(API_ENDPOINTS.TASKS + id, { method: 'PUT', body: JSON.stringify(data) });
+
+export const changeTaskStatus = (id: number, status: TaskStatus) =>
+  request<Task>(API_ENDPOINTS.TASKS + id, { method: 'PATCH', body: JSON.stringify({ status }) });
+
+export const deleteTask = (id: number) => request<{ detail: string }>(API_ENDPOINTS.TASKS + id, { method: 'DELETE' });

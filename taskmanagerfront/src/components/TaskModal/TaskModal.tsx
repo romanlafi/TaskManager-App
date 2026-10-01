@@ -1,24 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Button from '../ui/Button/Button';
 import DateInput from '../ui/DateInput/DateInput';
 import SelectInput from '../ui/SelectInput/SelectInput';
 import Textarea from '../ui/Textarea/Textarea';
 import { Input } from '../ui/Input/Input';
-import { Save } from 'lucide-react';
-import type { Task, TaskFormData, TaskStatus } from '../../types';
+import { Save, X } from 'lucide-react';
+import type { Task, TaskFormData, TaskStatus, TaskPriority } from '../../types';
+import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 
 interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: TaskFormData) => void;
+  onSave: (data: TaskFormData) => Promise<void>;
   initialData?: Task | null;
+  initialDeadline?: string;
+  initialStatus?: TaskStatus;
 }
 
-const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalProps) => {
+const TaskModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialData = null,
+  initialDeadline = '',
+  initialStatus = 'pending',
+}: TaskModalProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
   const [status, setStatus] = useState<TaskStatus>('pending');
+  const [priority, setPriority] = useState<TaskPriority>('medium');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (isOpen && dialog && !dialog.open) dialog.showModal();
+    if (!isOpen && dialog?.open) dialog.close();
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -26,72 +45,134 @@ const TaskModal = ({ isOpen, onClose, onSave, initialData = null }: TaskModalPro
         setTitle(initialData.title);
         setDescription(initialData.description);
         setStatus(initialData.status);
-        setDeadline(
-          initialData.deadline
-            ? new Date(initialData.deadline).toISOString().split('T')[0]
-            : '',
-        );
+        setPriority(initialData.priority);
+        setDeadline(initialData.deadline ? initialData.deadline.slice(0, 10) : '');
+      } else {
+        setTitle('');
+        setDescription('');
+        setDeadline(initialDeadline);
+        setStatus(initialStatus);
+        setPriority('medium');
       }
     } else {
       setTitle('');
       setDescription('');
       setDeadline('');
       setStatus('pending');
+      setPriority('medium');
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, initialDeadline, initialStatus]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ title, description, deadline, status });
+    if (saving || !title.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ title: title.trim(), description, deadline, status, priority });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]">
-      <div className="bg-surface text-content p-8 rounded-2xl max-w-[500px] w-[70%] shadow-[0_6px_30px_rgba(0,0,0,0.3)]">
-        <h2 className="mb-4 text-xl font-semibold">{initialData?.id ? 'Edit Task' : 'New Task'}</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input
-            label="Title"
-            placeholder="Write a short title"
-            value={title}
-            maxLength={100}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          <Textarea
-            label="Description"
-            placeholder="Add some details (optional)"
-            value={description}
-            maxLength={1000}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-          />
-          <DateInput
-            label="Deadline"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
-          {initialData?.id && (
-            <SelectInput
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              options={[
-                { value: 'pending', label: 'Pending' },
-                { value: 'in_progress', label: 'In Progress' },
-                { value: 'done', label: 'Completed' },
-              ]}
-            />
-          )}
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button" onClick={onClose} text="Cancel" />
-            <Button type="submit" icon={Save} text="Save" />
-          </div>
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="task-modal-heading"
+      onKeyDown={(e) => {
+        if (e.key !== 'Tab') return;
+        const controls = Array.from(
+          e.currentTarget.querySelectorAll<HTMLElement>('input, textarea, select, button'),
+        ).filter((element) => !element.matches(':disabled') && element.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) {
+          e.preventDefault();
+          return;
+        }
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!saving) onClose();
+      }}
+      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-[640px] overflow-hidden rounded-xl border border-divider bg-bg p-0 text-content shadow-[0_20px_80px_rgba(0,0,0,0.4)] backdrop:bg-black/60"
+    >
+      {isOpen && (
+        <form onSubmit={handleSubmit}>
+          <fieldset disabled={saving} className="flex max-h-[calc(90dvh-2px)] min-w-0 flex-col">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-divider bg-surface/30 px-6 py-4 max-sm:px-4">
+                <h2 id="task-modal-heading" className="text-lg font-semibold">
+                  {initialData?.id ? 'Edit Task' : 'New Task'}
+                </h2>
+              <Button variant="icon" icon={X} className="!size-11" onClick={onClose} aria-label="Close task editor" />
+            </header>
+            <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-6 max-sm:p-4">
+              <Input
+                label="Title"
+                placeholder="Write a short title"
+                value={title}
+                maxLength={100}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                autoFocus
+                className="h-11 py-0"
+              />
+              <Textarea
+                label="Description"
+                placeholder="Add some details (optional)"
+                value={description}
+                maxLength={1000}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="min-h-24"
+              />
+              <div className="grid grid-cols-3 items-end gap-4 max-sm:grid-cols-2">
+                <SelectInput
+                  label="Status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                  options={STATUS_OPTIONS}
+                  className="h-11 py-0"
+                />
+                <SelectInput
+                  label="Priority"
+                  value={priority}
+                  options={PRIORITY_OPTIONS}
+                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                  className="h-11 py-0"
+                />
+                <DateInput
+                  label="Deadline"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="h-11 py-0"
+                  fieldClassName="max-sm:col-span-2"
+                />
+              </div>
+            </div>
+            <footer className="flex shrink-0 items-center justify-end gap-3 border-t border-divider bg-surface/30 px-6 py-4 max-sm:px-4">
+              <div>
+                <Button variant="secondary" onClick={onClose} text="Cancel" className="h-11 [&_span]:text-sm" />
+              </div>
+              <div>
+                <Button
+                  type="submit"
+                  icon={Save}
+                  text={saving ? 'Saving...' : 'Save'}
+                  className="h-11 min-w-24 [&_span]:text-sm"
+                />
+              </div>
+            </footer>
+          </fieldset>
         </form>
-      </div>
-    </div>
+      )}
+    </dialog>
   );
 };
 

@@ -14,13 +14,14 @@ interface ConfirmModalProps {
   confirmVariant?: ButtonVariant;
   confirmButtonIcon?: LucideIcon;
   icon?: ReactNode;
+  busy?: boolean;
 }
 
 const ConfirmModal = ({
   isOpen, onConfirm, onCancel,
   title = 'Confirm', message = 'Are you sure?',
   confirmText = 'Confirm', cancelText = 'Cancel',
-  confirmVariant = 'danger', confirmButtonIcon, icon = null,
+  confirmVariant = 'danger', confirmButtonIcon, icon = null, busy = false,
 }: ConfirmModalProps) => {
   if (!isOpen) return null;
 
@@ -31,8 +32,8 @@ const ConfirmModal = ({
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
         <p className="text-sm opacity-80">{message}</p>
         <div className="mt-6 flex justify-between gap-4">
-          <Button onClick={onCancel} variant="outline" text={cancelText} />
-          <Button onClick={onConfirm} variant={confirmVariant} icon={confirmButtonIcon} text={confirmText} />
+          <Button onClick={onCancel} disabled={busy} variant="secondary" text={cancelText} />
+          <Button onClick={onConfirm} disabled={busy} variant={confirmVariant} icon={confirmButtonIcon} text={confirmText} />
         </div>
       </div>
     </div>

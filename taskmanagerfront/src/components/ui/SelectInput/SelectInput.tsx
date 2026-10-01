@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { SelectHTMLAttributes } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { FieldLabel, getFieldClassName } from '../fieldStyles';
 import type { FieldSize, FieldVariant } from '../fieldStyles';
 
@@ -33,15 +34,25 @@ const SelectInput = ({
   return (
     <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
       {label && <FieldLabel htmlFor={selectId}>{label}</FieldLabel>}
-      <select
-        {...props}
-        id={selectId}
-        className={`${getFieldClassName(size, variant)} cursor-pointer ${className}`}
-      >
-        {children ?? options.map(({ value, label: optionLabel }) => (
-          <option key={value} value={value}>{optionLabel}</option>
-        ))}
-      </select>
+      <div className="group relative">
+        <select
+          {...props}
+          id={selectId}
+          className={`${getFieldClassName(size, variant)} cursor-pointer appearance-none [color-scheme:dark] hover:border-accent/50 ${size === 's' ? 'pr-8' : 'pr-10'} ${className}`}
+        >
+          {children ??
+            options.map(({ value, label: optionLabel }) => (
+              <option key={value} value={value}>
+                {optionLabel}
+              </option>
+            ))}
+        </select>
+        <ChevronDown
+          size={size === 's' ? 14 : size === 'l' ? 18 : 16}
+          aria-hidden="true"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-content/45 transition-colors group-focus-within:text-accent ${size === 's' ? 'right-2.5' : 'right-3'} ${props.disabled ? 'opacity-50' : ''}`}
+        />
+      </div>
     </div>
   );
 };

@@ -18,6 +18,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const showToast = (message: string, type: ToastType) => {
@@ -27,74 +28,120 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
 
   const resetForm = () => {
     setIsLogin(true);
-    setUsername('');
     setPassword('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const changeMode = (login: boolean) => {
+    if (submitting || login === isLogin) return;
+    setIsLogin(login);
+    setPassword('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (submitting) return;
+    if (!username.trim() || !password) {
+      e.currentTarget.reportValidity();
+      return;
+    }
+    setSubmitting(true);
+    const showError = (message: string) => showToast(message, 'error');
+    const registrationComplete = () => {
+      resetForm();
+      showToast(MESSAGES.REGISTER_SUCCESS, 'success');
+    };
     try {
       const action = isLogin ? loginUser : registerUser;
-      const { status, data } = await action(username, password);
+      const { status, data } = await action(username.trim(), password);
 
       const handlers: Record<number, () => void> = {
         [HTTP_STATUS.SUCCESS]: () => {
           if (isLogin) {
+            if (typeof data.access_token !== 'string' || !data.access_token) {
+              showError(MESSAGES.UNEXPECTED_ERROR);
+              return;
+            }
             localStorage.setItem('access_token', data.access_token);
             showToast(MESSAGES.LOGIN_SUCCESS, 'success');
             navigate('/dashboard');
           } else {
-            showToast(MESSAGES.REGISTER_SUCCESS, 'success');
-            resetForm();
+            registrationComplete();
           }
         },
-        [HTTP_STATUS.CREATED]: () => { showToast(MESSAGES.REGISTER_SUCCESS, 'success'); resetForm(); },
-        [HTTP_STATUS.BAD_REQUEST]: () => showToast(data.detail ?? MESSAGES.LOGIN_ERROR, 'error'),
-        [HTTP_STATUS.UNAUTHORIZED]: () => showToast(data.detail ?? MESSAGES.LOGIN_ERROR, 'error'),
-        [HTTP_STATUS.NOT_FOUND]: () => showToast(data.detail ?? 'User not found.', 'error'),
-        [HTTP_STATUS.CONFLICT]: () => showToast(MESSAGES.REGISTER_CONFLICT, 'error'),
+        [HTTP_STATUS.CREATED]: registrationComplete,
+        [HTTP_STATUS.BAD_REQUEST]: () => showError(data.detail ?? MESSAGES.LOGIN_ERROR),
+        [HTTP_STATUS.UNAUTHORIZED]: () => showError(data.detail ?? MESSAGES.LOGIN_ERROR),
+        [HTTP_STATUS.NOT_FOUND]: () => showError(data.detail ?? 'User not found.'),
+        [HTTP_STATUS.CONFLICT]: () => showError(MESSAGES.REGISTER_CONFLICT),
       };
 
-      (handlers[status] ?? (() => showToast(MESSAGES.UNEXPECTED_ERROR, 'error')))();
+      (handlers[status] ?? (() => showError(MESSAGES.UNEXPECTED_ERROR)))();
     } catch (err) {
       console.error(err);
-      showToast(MESSAGES.SERVER_ERROR, 'error');
+      showError(MESSAGES.SERVER_ERROR);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-dvh bg-bg flex items-center justify-center p-8 box-border overflow-y-auto">
-      <div className="max-w-[400px] w-full bg-surface p-8 rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] max-h-full overflow-y-auto max-sm:p-6 max-sm:max-w-full">
-        <img src={logo} alt="TaskManager" className="mx-auto mb-4 h-60 w-full object-contain" />
-
-        <form onSubmit={handleSubmit} className="flex flex-col items-center justify-center gap-4 w-full max-sm:gap-3">
-          <Input
-            label="Username"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <Input
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button type="submit" text={isLogin ? 'Log In' : 'Register'} icon={isLogin ? LogIn : UserPlus} />
+    <main className="flex min-h-dvh items-center justify-center bg-bg p-8 text-content max-sm:p-4">
+      <section
+        aria-labelledby="auth-heading"
+        className="w-full max-w-[420px] rounded-xl border border-divider bg-surface/30 p-8 shadow-[0_16px_48px_rgba(0,0,0,0.2)] max-sm:p-6"
+      >
+        <h1 id="auth-heading" className="sr-only">
+          {isLogin ? 'Log in to TaskManager' : 'Create a TaskManager account'}
+        </h1>
+        <img src={logo} alt="TaskManager" className="mx-auto mb-6 h-56 w-full object-contain" />
+        <form onSubmit={handleSubmit} aria-busy={submitting}>
+          <fieldset disabled={submitting} className="flex min-w-0 flex-col gap-5">
+            <Input
+              label="Username"
+              name="username"
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              required
+              pattern={'.*\\S.*'}
+              className="h-11 py-0"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <Input
+              label="Password"
+              name="password"
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+              required
+              className="h-11 py-0"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button
+              type="submit"
+              className="h-11 [&_span]:text-sm"
+              text={submitting ? (isLogin ? 'Logging in...' : 'Creating account...') : isLogin ? 'Log In' : 'Register'}
+              icon={isLogin ? LogIn : UserPlus}
+            />
+          </fieldset>
         </form>
-
         <button
           type="button"
-          className="bg-transparent border-none p-0 w-full text-center mt-6 text-sm text-[#a08060] cursor-pointer transition-opacity hover:underline hover:opacity-80 max-sm:text-[13px]"
-          onClick={() => setIsLogin(!isLogin)}
+          disabled={submitting}
+          onClick={() => changeMode(!isLogin)}
+          className="group mt-6 w-full cursor-pointer rounded-sm text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-wait disabled:opacity-50"
         >
-          {isLogin
-            ? "Don't have an account? Register here."
-            : 'Already have an account? Log in here.'}
+          <span className="text-content/50">{isLogin ? "Don't have an account? " : 'Already have an account? '}</span>
+          <span className="text-accent transition-colors group-hover:text-content group-hover:underline">
+            {isLogin ? 'Register here.' : 'Log in here.'}
+          </span>
         </button>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

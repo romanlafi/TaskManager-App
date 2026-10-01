@@ -10,6 +10,8 @@ Full-stack task management app built with **Cloudflare Workers + D1** (backend) 
 
 - User registration and login with JWT authentication
 - Task CRUD (Create, Read, Update, Delete)
+- List, Kanban board, and monthly calendar views with shared search and filters
+- Low, medium, and high task priorities; drag tasks between board columns
 - SPA frontend served via Cloudflare Assets
 - Serverless — no infrastructure to manage
 
@@ -66,6 +68,9 @@ npm run dev
 
 Builds the frontend and starts Wrangler at [http://localhost:8787](http://localhost:8787).
 
+The dev command applies pending local migrations automatically. The task priority
+migration preserves existing tasks and assigns them medium priority.
+
 ---
 
 ## API Endpoints
@@ -89,6 +94,9 @@ Builds the frontend and starts Wrangler at [http://localhost:8787](http://localh
 
 ```bash
 cd cloudflare
+
+# Build the updated frontend
+npm run build
 
 # Apply migrations to remote D1
 npm run db:migrate:remote

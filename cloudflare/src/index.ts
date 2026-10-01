@@ -12,6 +12,9 @@ app.route('/api', users);
 app.route('/api', tasks);
 
 app.notFound(async (c) => {
+  if (c.req.path === '/api' || c.req.path.startsWith('/api/')) {
+    return c.json({ detail: 'Not found' }, 404);
+  }
   if (c.env.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
   return c.json({ detail: 'Not found' }, 404);
 });
