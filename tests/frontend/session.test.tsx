@@ -13,7 +13,7 @@ import { testToken } from './helpers/token';
 let fetchMock: ReturnType<typeof vi.fn>;
 let token: string;
 let renewedToken: string;
-const task = { id: 1, title: 'Private task', description: '', status: 'pending', created_at: '2026-10-01', deadline: null };
+const task = { id: 1, title: 'Private task', description: '', status: 'pending', priority: 'medium', created_at: '2026-10-01', deadline: null };
 
 function response(data: unknown = {}, status = 200) {
   return new Response(status === 204 ? null : JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -56,7 +56,7 @@ describe('restoring and synchronizing authentication', () => {
     fetchMock.mockResolvedValueOnce(response({ access_token: token })).mockResolvedValueOnce(response([task]));
     window.history.replaceState({}, '', '/dashboard');
     render(<App />);
-    expect(await screen.findByRole('heading', { name: task.title })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: task.title, exact: true })).toBeInTheDocument();
     expect(getAccessToken()).toBe(token);
     expect(window.location.pathname).toBe('/dashboard');
     expect(fetchMock).toHaveBeenCalledWith('/api/users/refresh', { method: 'POST', credentials: 'include' });
@@ -68,7 +68,7 @@ describe('restoring and synchronizing authentication', () => {
     fetchMock.mockResolvedValueOnce(response({ access_token: token }));
     window.history.replaceState({}, '', '/dashboard');
     render(<App />);
-    await screen.findByRole('heading', { name: 'My Tasks' });
+    await screen.findByRole('navigation', { name: 'Task views' });
     expect(fetchMock.mock.calls[0][0]).toBe('/api/users/refresh');
     expect(getAccessToken()).toBe(token);
   });
@@ -76,7 +76,7 @@ describe('restoring and synchronizing authentication', () => {
   it('redirects an already signed-in visitor from login to the dashboard', async () => {
     saveLogin(token);
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'My Tasks' })).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: 'Task views' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/dashboard');
     expect(fetchMock).not.toHaveBeenCalledWith('/api/users/refresh', expect.anything());
   });
@@ -92,27 +92,27 @@ describe('restoring and synchronizing authentication', () => {
     expect(getAccessToken()).toBe(expired);
     fetchMock.mockResolvedValueOnce(response({ access_token: token }));
     await userEvent.setup().click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('heading', { name: 'My Tasks' })).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: 'Task views' })).toBeInTheDocument();
   });
 
   it('closes the dashboard immediately on logout in another tab', async () => {
     fetchMock.mockResolvedValueOnce(response([task]));
     dashboard();
-    await screen.findByRole('heading', { name: task.title });
+    await screen.findByRole('button', { name: task.title, exact: true });
     act(() => {
       localStorage.removeItem('access_token');
       localStorage.setItem('auth_state', 'out:other-tab');
       window.dispatchEvent(new StorageEvent('storage', { key: 'auth_state' }));
     });
     expect(await screen.findByRole('button', { name: 'Log In' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: task.title })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: task.title, exact: true })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('discards the previous account data when another tab logs in with a different account', async () => {
     fetchMock.mockResolvedValueOnce(response([task]));
     dashboard();
-    await screen.findByRole('heading', { name: task.title });
+    await screen.findByRole('button', { name: task.title, exact: true });
     const pending = deferred<Response>();
     fetchMock.mockReturnValueOnce(pending.promise);
     act(() => {
@@ -120,9 +120,9 @@ describe('restoring and synchronizing authentication', () => {
       localStorage.setItem('auth_state', 'in:bob');
       window.dispatchEvent(new StorageEvent('storage', { key: 'access_token' }));
     });
-    expect(screen.queryByRole('heading', { name: task.title })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: task.title, exact: true })).not.toBeInTheDocument();
     await act(async () => pending.resolve(response([])));
-    expect(await screen.findByText('No tasks found.')).toBeInTheDocument();
+    expect(await screen.findByText('A fresh start')).toBeInTheDocument();
   });
 
   it('shares one restoration request under StrictMode', async () => {
@@ -131,13 +131,13 @@ describe('restoring and synchronizing authentication', () => {
     render(<StrictMode><App /></StrictMode>);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => pending.resolve(response({ access_token: token })));
-    expect(await screen.findByRole('heading', { name: 'My Tasks' })).toBeInTheDocument();
+    expect(await screen.findByRole('navigation', { name: 'Task views' })).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => url.endsWith('/refresh'))).toHaveLength(1);
   });
 
   it('renews an expired session when returning to a tab', async () => {
     dashboard();
-    await screen.findByText('No tasks found.');
+    await screen.findByText('A fresh start');
     localStorage.setItem('access_token', testToken('alice', 0));
     fetchMock.mockResolvedValueOnce(response({ access_token: renewedToken }));
     fireEvent.focus(window);
@@ -166,7 +166,7 @@ describe('restoring and synchronizing authentication', () => {
     saveLogin(token);
     window.history.replaceState({}, '', '/unknown');
     render(<App />);
-    await screen.findByRole('heading', { name: 'My Tasks' });
+    await screen.findByRole('navigation', { name: 'Task views' });
     expect(window.location.pathname).toBe('/dashboard');
   });
 
@@ -185,10 +185,10 @@ describe('dashboard request failures and ordering', () => {
     const user = userEvent.setup();
     fetchMock.mockResolvedValueOnce(response([task]));
     dashboard();
-    await screen.findByRole('heading', { name: task.title });
-    if (action === 'delete') await user.click(screen.getByRole('button', { name: 'Delete task' }));
+    await screen.findByRole('button', { name: task.title, exact: true });
+    if (action === 'delete') await user.click(screen.getByRole('button', { name: 'Delete ' + task.title }));
     else {
-      await user.click(screen.getByRole('button', { name: action === 'create' ? 'Add Task' : 'Edit task' }));
+      await user.click(screen.getByRole('button', { name: action === 'create' ? 'Add Task' : 'Edit ' + task.title }));
       if (action === 'create') await user.type(screen.getByLabelText('Title'), 'New task');
     }
     return user;
@@ -215,26 +215,22 @@ describe('dashboard request failures and ordering', () => {
     expect(getAccessToken()).toBeNull();
   });
 
-  it('retains the newest search results when an older request completes later', async () => {
+  it('filters the loaded tasks without racing additional HTTP requests', async () => {
+    fetchMock.mockResolvedValueOnce(response([task, { ...task, id: 2, title: 'Newest result' }]));
     dashboard();
-    await screen.findByText('No tasks found.');
-    const pending = deferred<Response>();
-    fetchMock.mockReturnValueOnce(pending.promise);
+    await screen.findByRole('button', { name: task.title, exact: true });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Filters' }));
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'old' } });
-    const signal = fetchMock.mock.calls.at(-1)![1].signal as AbortSignal;
-    fetchMock.mockResolvedValueOnce(response([{ ...task, title: 'Newest result' }]));
+    expect(screen.queryByRole('button', { name: 'Newest result', exact: true })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'new' } });
-    expect(await screen.findByRole('heading', { name: 'Newest result' })).toBeInTheDocument();
-    expect(signal.aborted).toBe(true);
-    await act(async () => pending.resolve(response([{ ...task, title: 'Outdated result' }])));
-    expect(screen.queryByRole('heading', { name: 'Outdated result' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Newest result' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Newest result', exact: true })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('reports a failed server logout while clearing local authentication', async () => {
     const user = userEvent.setup();
     dashboard();
-    await screen.findByText('No tasks found.');
+    await screen.findByText('A fresh start');
     await user.click(screen.getByRole('button', { name: 'Log out' }));
     fetchMock.mockRejectedValueOnce(new Error('offline'));
     await user.click(screen.getAllByRole('button', { name: 'Log out' })[1]);
@@ -353,7 +349,7 @@ describe('authenticated HTTP requests', () => {
 
   it.each(['create', 'update', 'delete'])('rejects unsuccessful %s requests rather than reporting success', async (action) => {
     fetchMock.mockResolvedValueOnce(response({ detail: 'Rejected' }, 403));
-    const request = action === 'create' ? createTask('Task', '', '') : action === 'update' ? updateTask(1, 'Task', '', 'done', '') : deleteTask(1);
+    const request = action === 'create' ? createTask({ title: 'Task', description: '', deadline: '', status: 'pending', priority: 'medium' }) : action === 'update' ? updateTask(1, { title: 'Task', description: '', deadline: '', status: 'done', priority: 'medium' }) : deleteTask(1);
     await expect(request).rejects.toMatchObject({ status: 403, message: 'Rejected' });
     expect(getAccessToken()).toBe(token);
     expect(fetchMock).toHaveBeenCalledTimes(1);

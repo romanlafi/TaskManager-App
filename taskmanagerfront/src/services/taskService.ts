@@ -1,23 +1,15 @@
 ﻿import { API_ENDPOINTS } from '../config/api';
 import type { Task, TaskFormData, TaskStatus } from '../types';
-
-export class TaskRequestError extends Error {
-  constructor(public status: number) {
-    super('Task request failed (' + status + ')');
-  }
-}
+import { authenticatedRequest } from './http';
 
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, {
+  return authenticatedRequest<T>(url, {
     ...options,
     headers: {
-      Authorization: 'Bearer ' + localStorage.getItem('access_token'),
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });
-  if (!response.ok) throw new TaskRequestError(response.status);
-  return response.json();
 }
 
 // Load every page so the board and calendar never silently omit tasks.

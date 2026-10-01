@@ -6,7 +6,10 @@ import type { Env } from './types';
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use('/api/*', cors({ origin: '*' }));
+app.use('/api/*', cors({
+  origin: (origin, c) => origin === new URL(c.req.url).origin || origin === c.env.FRONTEND_ORIGIN ? origin : null,
+  credentials: true,
+}));
 app.get('/api/health', (c) => c.json({ status: 'ok' }));
 app.route('/api', users);
 app.route('/api', tasks);

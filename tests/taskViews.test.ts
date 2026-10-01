@@ -35,6 +35,13 @@ const tasks: Task[] = [
 ];
 
 describe('Shared task views', () => {
+  it('sorts by title and newest creation time, breaking ties consistently', () => {
+    expect(filterTasks(tasks, { ...defaults, orderBy: 'title' }).map((task) => task.id)).toEqual([2, 1, 3]);
+    expect(filterTasks(tasks, { ...defaults, orderBy: 'created_at' }).map((task) => task.id)).toEqual([3, 2, 1]);
+    const same = tasks.map((task) => ({ ...task, priority: 'medium' as const, deadline: null }));
+    expect(filterTasks(same, defaults).map((task) => task.id)).toEqual([3, 2, 1]);
+    expect(filterTasks(same, { ...defaults, orderBy: 'deadline' }).map((task) => task.id)).toEqual([3, 2, 1]);
+  });
   it('orders high, medium, low without changing the source tasks', () => {
     expect(filterTasks(tasks, defaults).map((task) => task.id)).toEqual([2, 3, 1]);
     expect(tasks.map((task) => task.id)).toEqual([1, 2, 3]);

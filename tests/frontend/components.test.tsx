@@ -74,32 +74,33 @@ describe('buttons and fields', () => {
 });
 
 describe('task cards and confirmation', () => {
-  it.each([
-    ['pending', 'Pending'],
-    ['in_progress', 'In Progress'],
-    ['done', 'Completed'],
-  ] as const)('renders the %s status and dates without action buttons', (status, label) => {
-    render(<TaskCard title="Task" description="Details" status={status} created_at="2026-09-01" deadline={null} />);
-    expect(screen.getByText(label)).toBeInTheDocument();
-    expect(screen.getByText('Created:').parentElement).toHaveTextContent(new Date('2026-09-01').toLocaleDateString());
-    expect(screen.queryByText('Deadline:')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  it.each(['pending', 'in_progress', 'done'] as const)('renders %s with priority and no deadline', (status) => {
+    render(<TaskCard id={1} title="Task" description="Details" priority="medium" status={status} created_at="2026-09-01" deadline={null} onEdit={vi.fn()} onDelete={vi.fn()} onStatusChange={vi.fn()} />);
+    expect(screen.getByLabelText('Status for Task')).toHaveValue(status);
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(screen.queryByText(/Overdue/)).not.toBeInTheDocument();
   });
 
-  it('exposes only the supplied card actions', async () => {
+  it('forwards editing, deletion and status changes and disables busy cards', async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
     const onDelete = vi.fn();
-    const props = { title: 'Task', description: '', status: 'pending' as const, created_at: '2026-09-01', deadline: '2026-10-01' };
-    const { rerender } = render(<TaskCard {...props} onEdit={onEdit} />);
-    await user.click(screen.getByRole('button', { name: 'Edit task' }));
-    expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', { name: 'Delete task' })).not.toBeInTheDocument();
-    expect(screen.getByText('Deadline:')).toBeInTheDocument();
-    rerender(<TaskCard {...props} onDelete={onDelete} />);
-    await user.click(screen.getByRole('button', { name: 'Delete task' }));
+    const onStatusChange = vi.fn();
+    const props = { id: 1, title: 'Task', description: '', priority: 'high' as const, status: 'pending' as const, created_at: '2026-09-01', deadline: '2020-10-01', onEdit, onDelete, onStatusChange };
+    const { rerender } = render(<TaskCard {...props} />);
+    await user.click(screen.getByRole('button', { name: 'Edit Task' }));
+    await user.click(screen.getByRole('button', { name: 'Task', exact: true }));
+    expect(onEdit).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', { name: 'Delete Task' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', { name: 'Edit task' })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Status for Task'), 'done');
+    expect(onStatusChange).toHaveBeenCalledWith('done');
+    expect(screen.getByText(/Overdue/)).toBeInTheDocument();
+    rerender(<TaskCard {...props} disabled status="done" />);
+    expect(screen.getByLabelText('Status for Task')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Edit Task' })).toBeDisabled();
+    expect(screen.queryByText(/Overdue/)).not.toBeInTheDocument();
   });
 
   it('renders confirmation defaults only when open and forwards decisions', async () => {

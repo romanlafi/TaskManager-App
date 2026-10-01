@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   changeTaskStatus,
   createTask,
   deleteTask,
   fetchTasks,
-  TaskRequestError,
   updateTask,
 } from '../../services/taskService';
 import TaskCard from '../../components/TaskCard/TaskCard';
@@ -21,6 +19,8 @@ import { CalendarDays, Columns3, Filter, List, LogOut, Plus, Trash2, TriangleAle
 import Button from '../../components/ui/Button/Button';
 import SelectInput from '../../components/ui/SelectInput/SelectInput';
 import type { Task, TaskFormData, TaskStatus, ToastType } from '../../types';
+import { HttpError, isCancelled } from '../../services/http';
+import { logoutSession, SessionExpiredError } from '../../services/session';
 
 interface DashboardProps {
   setToastMessage: (msg: string) => void;
@@ -54,27 +54,24 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
   const pendingIds = useRef(new Set<number>());
-  const navigate = useNavigate();
 
   const showToast = (message: string, type: ToastType) => {
     setToastMessage(message);
     setToastType(type);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    navigate('/');
-    showToast(MESSAGES.SESSION_ENDED, 'success');
+  const handleLogout = async () => {
+    try {
+      await logoutSession();
+      showToast(MESSAGES.SESSION_ENDED, 'success');
+    } catch (err) {
+      if (!isCancelled(err)) showToast(MESSAGES.LOGOUT_ERROR, 'error');
+    }
   };
 
   const handleError = (err: unknown) => {
-    if (err instanceof TaskRequestError && err.status === 401) {
-      localStorage.removeItem('access_token');
-      navigate('/');
-      showToast(MESSAGES.SESSION_EXPIRED_ERROR, 'error');
-    } else {
-      showToast(MESSAGES.SERVER_ERROR, 'error');
-    }
+    if (isCancelled(err) || err instanceof SessionExpiredError) return;
+    showToast(err instanceof HttpError ? err.message : MESSAGES.SERVER_ERROR, 'error');
   };
 
   useEffect(() => {
@@ -86,23 +83,16 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
         if (!controller.signal.aborted) setTasks(data);
       })
       .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-        if (err instanceof TaskRequestError && err.status === 401) {
-          localStorage.removeItem('access_token');
-          navigate('/');
-          setToastMessage(MESSAGES.SESSION_EXPIRED_ERROR);
-          setToastType('error');
-        } else {
-          setError(true);
-          setToastMessage(MESSAGES.SERVER_ERROR);
-          setToastType('error');
-        }
+        if (controller.signal.aborted || isCancelled(err) || err instanceof SessionExpiredError) return;
+        setError(true);
+        setToastMessage(err instanceof HttpError ? err.message : MESSAGES.SERVER_ERROR);
+        setToastType('error');
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [reload, navigate, setToastMessage, setToastType]);
+  }, [reload, setToastMessage, setToastType]);
 
   const openCreateModal = (deadline = '', status: TaskStatus = 'pending') => {
     setEditingTask(null);

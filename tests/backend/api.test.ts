@@ -142,6 +142,23 @@ describe('authentication', () => {
 });
 
 describe('tasks', () => {
+  it.each(['POST', 'PUT', 'PATCH'])('rejects invalid priorities for %s', async (method) => {
+    const path = method === 'POST' ? '/tasks/' : '/tasks/1';
+    expect((await request(path, method, { title: 'Task', priority: 'urgent' })).status).toBe(400);
+    expect((await request(path, method, { title: 'Task', priority: null })).status).toBe(400);
+  });
+
+  it('sorts priorities and preserves them during unrelated updates', async () => {
+    for (const priority of ['low', 'high', 'medium']) await request('/tasks/', 'POST', { title: priority, priority });
+    expect(await (await request('/tasks/?order_by=priority')).json()).toEqual([
+      expect.objectContaining({ priority: 'high' }), expect.objectContaining({ priority: 'medium' }), expect.objectContaining({ priority: 'low' }),
+    ]);
+    expect(await (await request('/tasks/1', 'PUT', { title: 'Renamed' })).json()).toMatchObject({ priority: 'low' });
+    expect(await (await request('/tasks/1', 'PATCH', { priority: 'high' })).json()).toMatchObject({ title: 'Renamed', priority: 'high' });
+    expect(await (await request('/tasks/1', 'PUT', { title: 'Renamed', priority: 'medium' })).json()).toMatchObject({ priority: 'medium' });
+    expect((await request('/tasks/?skip=invalid')).status).toBe(400);
+    expect((await request('/tasks/?limit=1.5')).status).toBe(400);
+  });
   it.each(['/tasks', '/tasks/'])('creates and lists tasks at %s with defaults', async (path) => {
     const response = await request(path, 'POST', { title: ' First task ' });
     expect(response.status).toBe(201);

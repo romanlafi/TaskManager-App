@@ -3,8 +3,8 @@ import {
   changeTaskStatus,
   createTask,
   fetchTasks,
-  TaskRequestError,
 } from '../taskmanagerfront/src/services/taskService';
+import { HttpError } from '../taskmanagerfront/src/services/http';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -42,7 +42,7 @@ describe('Task requests', () => {
     );
     await expect(
       createTask({ title: 'Task', description: '', deadline: '', status: 'pending', priority: 'high' }),
-    ).rejects.toBeInstanceOf(TaskRequestError);
+    ).rejects.toBeInstanceOf(HttpError);
   });
 
   it('changes only status when moving a card', async () => {

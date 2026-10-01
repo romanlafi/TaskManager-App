@@ -22,7 +22,7 @@ export default defineConfig({
           environment: 'jsdom',
           environmentOptions: { jsdom: { url: 'http://localhost/' } },
           setupFiles: ['tests/frontend/setup.ts'],
-          include: ['tests/frontend/**/*.test.{ts,tsx}'],
+          include: ['tests/frontend/**/*.test.{ts,tsx}', 'tests/taskViews.test.ts', 'tests/taskService.test.ts'],
         },
       },
     ],
