@@ -19,6 +19,17 @@ npm run dev
 
 El proxy de Vite envía `/api` a `http://127.0.0.1:8787`.
 
+## Migraciones de staging / preview
+
+Desde la raíz del repositorio:
+
+```bash
+npm run db:migrate:preview --workspace taskmanager-cloudflare
+```
+
+Este comando usa `preview_database_id` y aplica las migraciones pendientes a
+`taskmanager-db-staging`. `db:migrate:remote` sigue apuntando a `taskmanager-db`.
+
 ## Crear y configurar D1
 
 Desde este directorio:
