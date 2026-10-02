@@ -77,6 +77,7 @@ describe('authentication flows', () => {
   it.each([
     [400, { detail: 'Required fields' }, 'Required fields'],
     [400, {}, MESSAGES.LOGIN_ERROR],
+    [400, { detail: { internal: 'Invalid input' } }, MESSAGES.LOGIN_ERROR],
     [401, { detail: 'Wrong password' }, 'Wrong password'],
     [401, {}, MESSAGES.LOGIN_ERROR],
     [404, { detail: 'Missing account' }, 'Missing account'],
@@ -289,7 +290,7 @@ describe('dashboard flows', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/tasks/1', expect.objectContaining({ method: 'DELETE', headers: { Authorization: `Bearer ${sessionToken}` } }));
   });
 
-  it('keeps the task and closes confirmation if deletion fails', async () => {
+  it('keeps the task and confirmation open if deletion fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const user = userEvent.setup();
     fetchMock.mockResolvedValueOnce(reply([task]));

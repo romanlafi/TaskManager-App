@@ -2,13 +2,13 @@
 import { CalendarDays, Pencil, Trash2 } from 'lucide-react';
 import SelectInput from '../ui/SelectInput/SelectInput';
 import type { Task, TaskStatus } from '../../types';
-import { dateKey, PRIORITY_STYLE, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
+import { dateKey, formatDeadline, PRIORITY_OPTIONS, PRIORITY_STYLE, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 
 interface TaskCardProps extends Task {
-  onEdit: () => void;
-  onDelete: () => void;
-  onStatusChange: (status: TaskStatus) => void;
-  disabled?: boolean;
+  readonly onEdit: () => void;
+  readonly onDelete: () => void;
+  readonly onStatusChange: (status: TaskStatus) => void;
+  readonly disabled?: boolean;
 }
 
 export default function TaskCard({
@@ -39,7 +39,7 @@ export default function TaskCard({
           {title}
         </button>
         <span className={'shrink-0 rounded-md px-2 py-1 text-xs font-medium ' + PRIORITY_STYLE[priority]}>
-          {priority[0].toUpperCase() + priority.slice(1)}
+          {PRIORITY_OPTIONS.find((o) => o.value === priority)?.label}
         </span>
       </div>
       {description && <p className="line-clamp-2 text-sm leading-relaxed text-content/60 break-words">{description}</p>}
@@ -76,11 +76,7 @@ export default function TaskCard({
       {deadline && (
         <span className={'flex items-center gap-1.5 text-xs ' + (overdue ? 'text-rose-300' : 'text-content/50')}>
           <CalendarDays size={14} aria-hidden="true" />
-          {new Date(deadline.slice(0, 10) + 'T00:00:00').toLocaleDateString(undefined, {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
+          {formatDeadline(deadline)}
           {overdue && ' · Overdue'}
         </span>
       )}

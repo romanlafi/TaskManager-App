@@ -5,26 +5,20 @@ import logo from '../../assets/new_logo_text.webp';
 import { loginUser, registerUser } from '../../services/authService';
 import Button from '../../components/ui/Button/Button';
 import { Input } from '../../components/ui/Input/Input';
-import { HTTP_STATUS } from '../../config/api';
+import { isCancelled } from '../../services/http';
 import { MESSAGES } from '../../config/messages';
 import type { ToastType } from '../../types';
 
 interface AuthFormProps {
-  setToastMessage: (msg: string) => void;
-  setToastType: (type: ToastType) => void;
+  showToast: (message: string, type: ToastType) => void;
 }
 
-const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
+const AuthForm = ({ showToast }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-
-  const showToast = (message: string, type: ToastType) => {
-    setToastMessage(message);
-    setToastType(type);
-  };
 
   const resetForm = () => {
     setIsLogin(true);
@@ -54,35 +48,30 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
       const action = isLogin ? loginUser : registerUser;
       const { status, data } = await action(username.trim(), password);
 
-      const handlers: Record<number, () => void> = {
-        [HTTP_STATUS.SUCCESS]: () => {
-          if (isLogin) {
-            if (typeof data.access_token !== 'string' || !data.access_token) {
-              showError(MESSAGES.UNEXPECTED_ERROR);
-              return;
-            }
-            localStorage.setItem('access_token', data.access_token);
-            showToast(MESSAGES.LOGIN_SUCCESS, 'success');
-            navigate('/dashboard');
-          } else {
-            registrationComplete();
-          }
-        },
-        [HTTP_STATUS.CREATED]: registrationComplete,
-        [HTTP_STATUS.BAD_REQUEST]: () => showError(data.detail ?? MESSAGES.LOGIN_ERROR),
-        [HTTP_STATUS.UNAUTHORIZED]: () => showError(data.detail ?? MESSAGES.LOGIN_ERROR),
-        [HTTP_STATUS.NOT_FOUND]: () => showError(data.detail ?? 'User not found.'),
-        [HTTP_STATUS.CONFLICT]: () => showError(MESSAGES.REGISTER_CONFLICT),
-      };
-
-      (handlers[status] ?? (() => showError(MESSAGES.UNEXPECTED_ERROR)))();
+      if (status === 200 && isLogin) {
+        showToast(MESSAGES.LOGIN_SUCCESS, 'success');
+        navigate('/dashboard');
+      } else if (status === 200 || status === 201) {
+        registrationComplete();
+      } else if (status === 400 || status === 401) {
+        showError(data.detail ?? MESSAGES.LOGIN_ERROR);
+      } else if (status === 404) {
+        showError(data.detail ?? MESSAGES.USER_NOT_FOUND);
+      } else if (status === 409) {
+        showError(MESSAGES.REGISTER_CONFLICT);
+      } else {
+        showError(MESSAGES.UNEXPECTED_ERROR);
+      }
     } catch (err) {
-      console.error(err);
-      showError(MESSAGES.SERVER_ERROR);
+      if (!isCancelled(err)) showError(MESSAGES.SERVER_ERROR);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const submitLabel = submitting
+    ? (isLogin ? 'Logging in...' : 'Creating account...')
+    : (isLogin ? 'Log In' : 'Register');
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg p-8 text-content max-sm:p-4">
@@ -104,7 +93,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
               autoCorrect="off"
               spellCheck={false}
               required
-              pattern={'.*\\S.*'}
+              pattern={String.raw`.*\S.*`}
               className="h-11 py-0"
               placeholder="Enter your username"
               value={username}
@@ -124,7 +113,7 @@ const AuthForm = ({ setToastMessage, setToastType }: AuthFormProps) => {
             <Button
               type="submit"
               className="h-11 [&_span]:text-sm"
-              text={submitting ? (isLogin ? 'Logging in...' : 'Creating account...') : isLogin ? 'Log In' : 'Register'}
+              text={submitLabel}
               icon={isLogin ? LogIn : UserPlus}
             />
           </fieldset>

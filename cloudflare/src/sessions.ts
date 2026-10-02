@@ -1,6 +1,6 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { Context } from 'hono';
-import { createAccessToken } from './auth';
+import { ACCESS_TOKEN_LIFETIME_SECONDS, createAccessToken } from './auth';
 import type { AuthUser, Env } from './types';
 
 type SessionContext = Context<{ Bindings: Env }>;
@@ -46,7 +46,7 @@ export async function startSession(c: SessionContext, user: AuthUser) {
 }
 
 export async function sessionResponse(user: AuthUser, env: Env, sessionId: string) {
-  return { access_token: await createAccessToken(user, env, sessionId), token_type: 'bearer', expires_in: 1800 };
+  return { access_token: await createAccessToken(user, env, sessionId), token_type: 'bearer', expires_in: ACCESS_TOKEN_LIFETIME_SECONDS };
 }
 
 export async function refreshSession(c: SessionContext) {

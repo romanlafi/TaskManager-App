@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { compare, hash } from 'bcryptjs';
+import { compare, hash, truncates } from 'bcryptjs';
+import { readJsonObject } from '../request';
 import { refreshSession, revokeSession, sessionResponse, startSession, trustedOrigin } from '../sessions';
 import type { Env, UserRow } from '../types';
 
@@ -23,31 +24,33 @@ async function parseLoginForm(c: UserContext) {
       password: typeof body.password === 'string' ? body.password : '',
     };
   }
-  return await c.req.json<{ username?: string; password?: string }>();
+  return readJsonObject(c);
 }
 
 async function register(c: UserContext) {
-  const body = await c.req.json<{ username?: string; password?: string }>();
-  const username = body.username?.trim();
-  const password = body.password;
+  const body = await readJsonObject(c);
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
 
   if (!username || !password) return c.json({ detail: 'Username and password are required' }, 400);
+  if (truncates(password)) return c.json({ detail: 'Password must not exceed 72 UTF-8 bytes' }, 400);
 
   const existing = await c.env.DB.prepare('SELECT id FROM users WHERE username = ?').bind(username).first();
   if (existing) return c.json({ detail: 'Username already exists' }, 409);
 
   const hashedPassword = await hash(password, 10);
-  await c.env.DB.prepare(
-    'INSERT INTO users (username, hashed_password) VALUES (?, ?)'
-  ).bind(username, hashedPassword).run();
+  const registered = await c.env.DB.prepare(
+    'INSERT INTO users (username, hashed_password) VALUES (?, ?) ON CONFLICT(username) DO NOTHING RETURNING id'
+  ).bind(username, hashedPassword).first();
+  if (!registered) return c.json({ detail: 'Username already exists' }, 409);
 
   return c.json({ username, role: 'User' }, 201);
 }
 
 async function login(c: UserContext) {
   const body = await parseLoginForm(c);
-  const username = body.username?.trim();
-  const password = body.password;
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
 
   if (!username || !password) return c.json({ detail: 'Invalid credentials' }, 401);
 

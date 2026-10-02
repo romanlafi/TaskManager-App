@@ -1,17 +1,21 @@
 import { createMiddleware } from 'hono/factory';
 import { jwtVerify, SignJWT } from 'jose';
 import type { JWTPayload } from 'jose';
-import type { Context } from 'hono';
 import type { AuthUser, Env, UserRow } from './types';
 
-const getSecret = (env: Env) => new TextEncoder().encode(env.JWT_SECRET);
+export const ACCESS_TOKEN_LIFETIME_SECONDS = 30 * 60;
+
+const getSecret = (env: Env) => {
+  if (!env.JWT_SECRET) throw new Error('JWT_SECRET is required');
+  return new TextEncoder().encode(env.JWT_SECRET);
+};
 
 export async function createAccessToken(user: AuthUser, env: Env, sessionId?: string) {
   return new SignJWT({ sub: user.username, userId: user.id, role: user.role, ...(sessionId ? { sid: sessionId } : {}) })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuer(env.JWT_ISSUER || 'taskmanager-app')
     .setIssuedAt()
-    .setExpirationTime('30m')
+    .setExpirationTime(`${ACCESS_TOKEN_LIFETIME_SECONDS}s`)
     .sign(getSecret(env));
 }
 
@@ -42,8 +46,8 @@ export const requireAuth = createMiddleware<{ Bindings: Env; Variables: { user: 
     }
 
     const user = await c.env.DB.prepare(
-      'SELECT id, username, hashed_password, is_active, role FROM users WHERE id = ? AND username = ?'
-    ).bind(userId, username).first<UserRow>();
+      'SELECT id, username, is_active, role FROM users WHERE id = ? AND username = ?'
+    ).bind(userId, username).first<Omit<UserRow, 'hashed_password'>>();
 
     if (!user?.is_active) return c.json({ detail: 'Invalid credentials' }, 401);
 
@@ -58,7 +62,3 @@ export const requireAuth = createMiddleware<{ Bindings: Env; Variables: { user: 
     await next();
   }
 );
-
-export function currentUser(c: Context<{ Bindings: Env; Variables: { user: AuthUser } }>) {
-  return c.get('user');
-}

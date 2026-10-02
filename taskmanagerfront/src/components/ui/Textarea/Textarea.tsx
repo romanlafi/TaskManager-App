@@ -1,6 +1,5 @@
-import { useId } from 'react';
 import type { TextareaHTMLAttributes } from 'react';
-import { FieldLabel, getFieldClassName } from '../fieldStyles';
+import { FieldWrapper, getFieldClassName } from '../fieldStyles';
 import type { FieldSize, FieldVariant } from '../fieldStyles';
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -18,20 +17,16 @@ const Textarea = ({
   className = '',
   fieldClassName = '',
   ...props
-}: TextareaProps) => {
-  const generatedId = useId();
-  const textareaId = id ?? generatedId;
-
-  return (
-    <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
-      {label && <FieldLabel htmlFor={textareaId}>{label}</FieldLabel>}
+}: TextareaProps) => (
+  <FieldWrapper id={id} label={label} fieldClassName={fieldClassName}>
+    {(fieldId) => (
       <textarea
         {...props}
-        id={textareaId}
+        id={fieldId}
         className={`${getFieldClassName(size, variant)} resize-y ${className}`}
       />
-    </div>
-  );
-};
+    )}
+  </FieldWrapper>
+);
 
 export default Textarea;

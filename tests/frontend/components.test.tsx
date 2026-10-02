@@ -115,4 +115,19 @@ describe('task cards and confirmation', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('labels the confirmation dialog and blocks cancellation while busy', () => {
+    const onCancel = vi.fn();
+    const props = { isOpen: true, onConfirm: vi.fn(), onCancel, title: 'Delete Task', message: 'Delete this task?' };
+    const { rerender } = render(<ConfirmModal {...props} busy />);
+    const dialog = screen.getByRole('dialog', { name: 'Delete Task' });
+    expect(dialog).toHaveAccessibleDescription('Delete this task?');
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    const cancel = () => dialog.dispatchEvent(new Event('cancel', { bubbles: true, cancelable: true }));
+    cancel();
+    expect(onCancel).not.toHaveBeenCalled();
+    rerender(<ConfirmModal {...props} />);
+    cancel();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });

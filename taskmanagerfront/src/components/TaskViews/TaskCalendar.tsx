@@ -1,43 +1,58 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Button from '../ui/Button/Button';
 import { calendarDays, dateKey, PRIORITY_STYLE, STATUS_OPTIONS } from './taskViewUtils';
 import type { Task } from '../../types';
 
 interface TaskCalendarProps {
-  tasks: Task[];
-  onEdit: (task: Task) => void;
-  onCreate: (deadline: string) => void;
-  busyIds: Set<number>;
+  readonly tasks: Task[];
+  readonly onEdit: (task: Task) => void;
+  readonly onCreate: (deadline: string) => void;
+  readonly busyIds: Set<number>;
 }
 
-export default function TaskCalendar({ tasks, onEdit, onCreate, busyIds }: TaskCalendarProps) {
-  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-  const days = calendarDays(month);
-  const today = dateKey(new Date());
-  const unscheduled = tasks.filter((task) => !task.deadline);
-  const dated = new Map<string, Task[]>();
-  tasks.forEach((task) => {
-    if (task.deadline) {
-      const key = task.deadline.slice(0, 10);
-      dated.set(key, [...(dated.get(key) ?? []), task]);
-    }
-  });
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  const taskButton = (task: Task) => (
+interface CalendarTaskProps {
+  readonly task: Task;
+  readonly onEdit: (task: Task) => void;
+  readonly busyIds: Set<number>;
+}
+
+function CalendarTask({ task, onEdit, busyIds }: CalendarTaskProps) {
+  const status = STATUS_OPTIONS.find((o) => o.value === task.status);
+  return (
     <button
-      key={task.id}
       onClick={() => onEdit(task)}
       disabled={busyIds.has(task.id)}
-      title={`${task.title} · ${task.priority} priority · ${STATUS_OPTIONS.find((item) => item.value === task.status)?.label}`}
+      title={`${task.title} · ${task.priority} priority · ${status?.label}`}
       className={`flex w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-white/10 focus-visible:outline-accent disabled:opacity-50 ${PRIORITY_STYLE[task.priority]}`}
     >
-      <span
-        className={`size-1.5 shrink-0 rounded-full ${STATUS_OPTIONS.find((item) => item.value === task.status)?.dot}`}
-      />
+      <span className={`size-1.5 shrink-0 rounded-full ${status?.dot}`} />
       <span className={`truncate ${task.status === 'done' ? 'line-through opacity-60' : ''}`}>{task.title}</span>
     </button>
   );
+}
+
+export default function TaskCalendar({ tasks, onEdit, onCreate, busyIds }: TaskCalendarProps) {
+  const now = new Date();
+  const [month, setMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
+  const days = calendarDays(month);
+  const today = dateKey(new Date());
+
+  const { dated, unscheduled } = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    const noDeadline: Task[] = [];
+    for (const task of tasks) {
+      if (task.deadline) {
+        const key = task.deadline.slice(0, 10);
+        map.set(key, [...(map.get(key) ?? []), task]);
+      } else {
+        noDeadline.push(task);
+      }
+    }
+    return { dated: map, unscheduled: noDeadline };
+  }, [tasks]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -71,7 +86,7 @@ export default function TaskCalendar({ tasks, onEdit, onCreate, busyIds }: TaskC
       <div className="overflow-x-auto rounded-xl border border-divider">
         <div className="min-w-[700px]">
           <div className="grid grid-cols-7 border-b border-divider bg-surface/60">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+            {WEEK_DAYS.map((day) => (
               <div key={day} className="px-3 py-3 text-xs font-semibold text-content/50">
                 {day}
               </div>
@@ -107,7 +122,11 @@ export default function TaskCalendar({ tasks, onEdit, onCreate, busyIds }: TaskC
                       onClick={() => onCreate(key)}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">{(dated.get(key) ?? []).map(taskButton)}</div>
+                  <div className="flex flex-col gap-1">
+                    {(dated.get(key) ?? []).map((task) => (
+                      <CalendarTask key={task.id} task={task} onEdit={onEdit} busyIds={busyIds} />
+                    ))}
+                  </div>
                 </section>
               );
             })}
@@ -120,7 +139,9 @@ export default function TaskCalendar({ tasks, onEdit, onCreate, busyIds }: TaskC
             No deadline <span className="ml-1 text-content/40">{unscheduled.length}</span>
           </h3>
           <div className="grid grid-cols-3 gap-2 max-md:grid-cols-2 max-sm:grid-cols-1">
-            {unscheduled.map(taskButton)}
+            {unscheduled.map((task) => (
+              <CalendarTask key={task.id} task={task} onEdit={onEdit} busyIds={busyIds} />
+            ))}
           </div>
         </section>
       )}

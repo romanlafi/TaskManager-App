@@ -1,57 +1,39 @@
-# TaskManager en Cloudflare Workers
+# Cloudflare Worker
 
-Este directorio contiene la API TypeScript, las migraciones D1 y la configuración de despliegue. El Worker sirve también el `dist` generado por `taskmanagerfront`.
+The Worker serves the Hono API and the compiled frontend from `../taskmanagerfront/dist`. Install dependencies at the repository root; see the [main README](../README.md) for local setup and checks.
 
-## Desarrollo local
+## Configuration
 
-```bash
-npm install
-npm run db:migrate:local
-npm run dev
-```
+`wrangler.jsonc` defines the Worker, its assets binding, and the production and preview D1 databases. Database identifiers are public configuration, not credentials. To use your own Cloudflare account, create the databases and replace the corresponding identifiers and names:
 
-El frontend se puede ejecutar en otra terminal con:
-
-```bash
-cd ../taskmanagerfront
-npm run dev
-```
-
-El proxy de Vite envía `/api` a `http://127.0.0.1:8787`.
-
-## Migraciones de staging / preview
-
-Desde la raíz del repositorio:
-
-```bash
-npm run db:migrate:preview --workspace taskmanager-cloudflare
-```
-
-Este comando usa `preview_database_id` y aplica las migraciones pendientes a
-`taskmanager-db-staging`. `db:migrate:remote` sigue apuntando a `taskmanager-db`.
-
-## Crear y configurar D1
-
-Desde este directorio:
-
-```bash
+```sh
 npx wrangler d1 create taskmanager-db
+npx wrangler d1 create taskmanager-db-staging
 ```
 
-Hay que copiar el `database_id` que devuelve el comando a `wrangler.jsonc`, sustituyendo `REPLACE_WITH_D1_DATABASE_ID`. Después:
+Run these commands from `cloudflare/`. The local server listens on port **8799**, matching the Vite proxy. Local secrets belong in `.dev.vars`, copied from `.dev.vars.example`, and are ignored by Git. Set `FRONTEND_ORIGIN` only when a separate frontend origin needs access; the default deployed SPA uses the API's origin.
 
-```bash
-npm run db:migrate:remote
-npx wrangler secret put JWT_SECRET
+## Migrations
+
+From the repository root:
+
+```sh
+npm run db:migrate:local --workspace taskmanager-cloudflare
+npm run db:migrate:preview --workspace taskmanager-cloudflare
+npm run db:migrate:remote --workspace taskmanager-cloudflare
 ```
 
-Antes de desplegar, generar el frontend:
+The local command updates local D1 only. Preview uses `preview_database_id` for staging; remote updates production. Existing migration names are retained so already applied migrations are not run again. The priority migration preserves existing tasks and assigns medium priority.
 
-```bash
-cd ../taskmanagerfront
-npm run build
-cd ../cloudflare
-npm run deploy
+## Deployment
+
+After configuring your account and database, run from the repository root:
+
+```sh
+npm run check
+npm run db:migrate:remote --workspace taskmanager-cloudflare
+npm exec --workspace taskmanager-cloudflare -- wrangler secret put JWT_SECRET
+npm run deploy --workspace taskmanager-cloudflare
 ```
 
-El secreto local está en `.dev.vars` y está excluido por `.gitignore`.
+Set the JWT secret separately for each deployed environment. Remote migration and deployment commands change Cloudflare resources; they are never executed by `npm run check`.

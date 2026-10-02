@@ -28,9 +28,18 @@ export interface TaskFilters {
   orderBy: TaskOrder;
 }
 
+const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
+
+export function formatDeadline(deadline: string): string {
+  return new Date(deadline.slice(0, 10) + 'T00:00:00').toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
   const query = filters.search.trim().toLocaleLowerCase();
-  const priorityRank = { high: 0, medium: 1, low: 2 };
   return tasks
     .filter(
       (task) =>
@@ -39,13 +48,13 @@ export function filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
         (!filters.priority || task.priority === filters.priority) &&
         (!filters.beforeDeadline || (!!task.deadline && task.deadline.slice(0, 10) <= filters.beforeDeadline)),
     )
-    .sort((a, b) => {
+    .sort((first, second) => {
       let compared = 0;
-      if (filters.orderBy === 'priority') compared = priorityRank[a.priority] - priorityRank[b.priority];
-      if (filters.orderBy === 'title') compared = a.title.localeCompare(b.title);
-      if (filters.orderBy === 'deadline') compared = (a.deadline ?? '9999').localeCompare(b.deadline ?? '9999');
-      if (filters.orderBy === 'created_at') compared = b.created_at.localeCompare(a.created_at);
-      return compared || b.id - a.id;
+      if (filters.orderBy === 'priority') compared = PRIORITY_RANK[first.priority] - PRIORITY_RANK[second.priority];
+      if (filters.orderBy === 'title') compared = first.title.localeCompare(second.title);
+      if (filters.orderBy === 'deadline') compared = (first.deadline ?? '9999').localeCompare(second.deadline ?? '9999');
+      if (filters.orderBy === 'created_at') compared = second.created_at.localeCompare(first.created_at);
+      return compared || second.id - first.id;
     });
 }
 

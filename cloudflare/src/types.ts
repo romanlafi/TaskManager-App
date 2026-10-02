@@ -1,4 +1,4 @@
-import type { TaskStatus, TaskPriority } from '@taskmanager/types';
+import type { Task, TaskStatus, TaskPriority } from '@taskmanager/types';
 export type { TaskStatus, TaskPriority };
 
 export interface Env {
@@ -17,14 +17,7 @@ export interface UserRow {
   role: string;
 }
 
-export interface TaskRow {
-  id: number;
-  title: string;
-  description: string;
-  created_at: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  deadline: string | null;
+export interface TaskRow extends Task {
   owner_id: number;
 }
 

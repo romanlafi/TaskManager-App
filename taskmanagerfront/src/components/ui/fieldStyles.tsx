@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 export type FieldSize = 's' | 'm' | 'l';
@@ -20,3 +21,21 @@ export const getFieldClassName = (size: FieldSize, variant: FieldVariant) =>
 export const FieldLabel = ({ htmlFor, children }: { htmlFor: string; children: ReactNode }) => (
   <label htmlFor={htmlFor} className="text-[0.9rem] font-medium text-content">{children}</label>
 );
+
+interface FieldWrapperProps {
+  id?: string;
+  label?: string;
+  fieldClassName?: string;
+  children: (id: string) => ReactNode;
+}
+
+export const FieldWrapper = ({ id, label, fieldClassName = '', children }: FieldWrapperProps) => {
+  const generatedId = useId();
+  const fieldId = id ?? generatedId;
+  return (
+    <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
+      {label && <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>}
+      {children(fieldId)}
+    </div>
+  );
+};

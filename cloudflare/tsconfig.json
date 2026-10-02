@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types"],
@@ -11,5 +13,5 @@
       "@taskmanager/types": ["../packages/types/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+  "include": ["src/**/*.ts"]
 }

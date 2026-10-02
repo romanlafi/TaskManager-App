@@ -1,6 +1,5 @@
-import { useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
-import { FieldLabel, getFieldClassName } from '../fieldStyles';
+import { FieldWrapper, getFieldClassName } from '../fieldStyles';
 import type { FieldSize, FieldVariant } from '../fieldStyles';
 
 interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
@@ -18,21 +17,17 @@ const DateInput = ({
   className = '',
   fieldClassName = '',
   ...props
-}: DateInputProps) => {
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
-
-  return (
-    <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
-      {label && <FieldLabel htmlFor={inputId}>{label}</FieldLabel>}
+}: DateInputProps) => (
+  <FieldWrapper id={id} label={label} fieldClassName={fieldClassName}>
+    {(fieldId) => (
       <input
         {...props}
-        id={inputId}
+        id={fieldId}
         type="date"
         className={`date-input-native ${getFieldClassName(size, variant)} ${className}`}
       />
-    </div>
-  );
-};
+    )}
+  </FieldWrapper>
+);
 
 export default DateInput;

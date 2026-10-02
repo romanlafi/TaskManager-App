@@ -1,6 +1,5 @@
-import { useId } from 'react';
 import type { InputHTMLAttributes } from 'react';
-import { FieldLabel, getFieldClassName } from '../fieldStyles';
+import { FieldWrapper, getFieldClassName } from '../fieldStyles';
 import type { FieldSize, FieldVariant } from '../fieldStyles';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -20,20 +19,16 @@ export const Input = ({
   fieldClassName = '',
   autoComplete,
   ...props
-}: InputProps) => {
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
-
-  return (
-    <div className={`flex w-full flex-col gap-1.5 ${fieldClassName}`}>
-      {label && <FieldLabel htmlFor={inputId}>{label}</FieldLabel>}
+}: InputProps) => (
+  <FieldWrapper id={id} label={label} fieldClassName={fieldClassName}>
+    {(fieldId) => (
       <input
         {...props}
-        id={inputId}
+        id={fieldId}
         type={type}
         autoComplete={autoComplete ?? (type === 'password' ? 'current-password' : undefined)}
         className={`${getFieldClassName(size, variant)} ${className}`}
       />
-    </div>
-  );
-};
+    )}
+  </FieldWrapper>
+);

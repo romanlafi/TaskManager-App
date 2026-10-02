@@ -32,12 +32,13 @@ export async function authenticatedRequest<Result>(url: string, options: Request
   }
   options.signal?.throwIfAborted();
   if (response.status < 200 || response.status >= 300) {
-    const data = await response.json().catch(() => null);
+    const body: unknown = await response.json().catch(() => null);
     assertSession(state);
-    throw new HttpError(response.status, typeof data?.detail === 'string' ? data.detail : 'Request failed');
+    const detail = body && typeof body === 'object' && 'detail' in body ? body.detail : undefined;
+    throw new HttpError(response.status, typeof detail === 'string' ? detail : 'Request failed');
   }
-  const data = await response.json();
+  const result: Result = await response.json();
   assertSession(state);
   options.signal?.throwIfAborted();
-  return data as Result;
+  return result;
 }

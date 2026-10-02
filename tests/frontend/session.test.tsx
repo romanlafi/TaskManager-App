@@ -9,6 +9,7 @@ import { createTask, deleteTask, updateTask } from '../../taskmanagerfront/src/s
 import { assertSession, clearSession, getAccessToken, getSessionState, isCurrentToken, logoutSession, refreshAccessToken, saveLogin, SessionExpiredError, subscribeExpiration, subscribeSession } from '../../taskmanagerfront/src/services/session';
 import { MESSAGES } from '../../taskmanagerfront/src/config/messages';
 import { testToken } from './helpers/token';
+import { loginUser, registerUser } from '../../taskmanagerfront/src/services/authService';
 
 let fetchMock: ReturnType<typeof vi.fn>;
 let token: string;
@@ -377,6 +378,31 @@ describe('authenticated HTTP requests', () => {
     saveLogin(testToken('bob'));
     pending.resolve(response(null, 204));
     await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('authentication responses', () => {
+  it.each([null, [], 42, { access_token: 42 }, {}])('rejects malformed login responses without saving credentials: %j', async (body) => {
+    const previousState = getSessionState();
+    fetchMock.mockResolvedValueOnce(response(body));
+    await expect(loginUser('alice', 'password')).rejects.toThrow();
+    expect(getAccessToken()).toBeNull();
+    expect(getSessionState()).toBe(previousState);
+  });
+
+  it('rejects a malformed registration response', async () => {
+    fetchMock.mockResolvedValueOnce(response(null, 201));
+    await expect(registerUser('alice', 'password')).rejects.toThrow('Invalid authentication response');
+  });
+
+  it('discards a login completed after another tab changes the session', async () => {
+    const pending = deferred<Response>();
+    fetchMock.mockReturnValueOnce(pending.promise);
+    const login = loginUser('alice', 'password');
+    clearSession();
+    pending.resolve(response({ access_token: token }));
+    await expect(login).rejects.toMatchObject({ name: 'AbortError' });
+    expect(getAccessToken()).toBeNull();
   });
 });
 

@@ -1,13 +1,15 @@
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { requireAuth, currentUser } from '../auth';
+import { requireAuth } from '../auth';
+import { HTTPException } from 'hono/http-exception';
+import { readJsonObject } from '../request';
 import type { AuthUser, Env, TaskInput, TaskRow, TaskStatus, TaskPriority } from '../types';
 
 type TaskContext = Context<{ Bindings: Env; Variables: { user: AuthUser } }>;
 const tasks = new Hono<{ Bindings: Env; Variables: { user: AuthUser } }>();
-const statuses = new Set<TaskStatus>(['pending', 'in_progress', 'done']);
 const orderFields = new Set(['created_at', 'title', 'description', 'deadline', 'status', 'priority']);
-const priorities = new Set<TaskPriority>(['low', 'medium', 'high']);
+const VALID_STATUSES = new Set<TaskStatus>(['pending', 'in_progress', 'done']);
+const VALID_PRIORITIES = new Set<TaskPriority>(['low', 'medium', 'high']);
 
 function taskResponse(task: TaskRow) {
   return {
@@ -22,15 +24,54 @@ function taskResponse(task: TaskRow) {
 }
 
 function validStatus(value: unknown): value is TaskStatus {
-  return typeof value === 'string' && statuses.has(value as TaskStatus);
+  return VALID_STATUSES.has(value as TaskStatus);
 }
 
 function validPriority(value: unknown): value is TaskPriority {
-  return typeof value === 'string' && priorities.has(value as TaskPriority);
+  return VALID_PRIORITIES.has(value as TaskPriority);
+}
+
+function parseDeadline(value: unknown): string | null {
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') throw new HTTPException(400, { message: 'Invalid task deadline' });
+  const day = value.slice(0, 10);
+  const date = new Date(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(date.getTime()) ||
+      new Date(`${day}T00:00:00Z`).toISOString().slice(0, 10) !== day) {
+    throw new HTTPException(400, { message: 'Invalid task deadline' });
+  }
+  return value;
+}
+
+async function readTaskInput(c: TaskContext, requireTitle = true): Promise<Partial<TaskInput>> {
+  const body = await readJsonObject(c);
+  const task: Partial<TaskInput> = {};
+  if (requireTitle || body.title !== undefined) {
+    if (typeof body.title !== 'string' || !body.title.trim()) {
+      throw new HTTPException(400, { message: 'Title is required' });
+    }
+    task.title = body.title.trim();
+  }
+  if (body.description !== undefined) {
+    if (typeof body.description !== 'string') throw new HTTPException(400, { message: 'Invalid task description' });
+    task.description = body.description;
+  }
+  if (body.status !== undefined) {
+    if (!validStatus(body.status)) throw new HTTPException(400, { message: 'Invalid task status' });
+    task.status = body.status;
+  }
+  if (body.priority !== undefined) {
+    if (!validPriority(body.priority)) throw new HTTPException(400, { message: 'Invalid task priority' });
+    task.priority = body.priority;
+  }
+  if (body.deadline !== undefined) {
+    task.deadline = parseDeadline(body.deadline);
+  }
+  return task;
 }
 
 async function listTasks(c: TaskContext) {
-  const user = currentUser(c);
+  const user = c.get('user');
   const query = c.req.query();
   const skip = Math.max(Number(query.skip || 0), 0);
   const limit = Math.min(Math.max(Number(query.limit || 10), 1), 100);
@@ -67,63 +108,54 @@ async function listTasks(c: TaskContext) {
 }
 
 async function createTask(c: TaskContext) {
-  const user = currentUser(c);
-  const body = await c.req.json<TaskInput>();
-  const title = body.title?.trim();
-
-  if (!title) return c.json({ detail: 'Title is required' }, 400);
-  if (body.status && !validStatus(body.status)) return c.json({ detail: 'Invalid task status' }, 400);
-  if (body.priority !== undefined && !validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
+  const user = c.get('user');
+  const body = await readTaskInput(c);
 
   const result = await c.env.DB.prepare(
     `INSERT INTO tasks (title, description, status, priority, deadline, owner_id)
      VALUES (?, ?, ?, ?, ?, ?) RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
-  ).bind(title, body.description || '', body.status || 'pending', body.priority ?? 'medium', body.deadline || null, user.id).first<TaskRow>();
+  ).bind(body.title, body.description ?? '', body.status ?? 'pending', body.priority ?? 'medium', body.deadline ?? null, user.id).first<TaskRow>();
 
-  return c.json(taskResponse(result!), 201);
+  if (!result) throw new Error('Task insert returned no row');
+  return c.json(taskResponse(result), 201);
 }
 
 async function getTask(c: TaskContext) {
   const task = await c.env.DB.prepare(
     'SELECT id, title, description, created_at, status, priority, deadline, owner_id FROM tasks WHERE id = ? AND owner_id = ?'
-  ).bind(c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
+  ).bind(c.req.param('task_id'), c.get('user').id).first<TaskRow>();
   if (!task) return c.json({ detail: 'Task not found or unauthorized' }, 404);
   return c.json(taskResponse(task));
 }
 
 async function updateTask(c: TaskContext) {
-  const body = await c.req.json<TaskInput>();
-  if (!body.title?.trim()) return c.json({ detail: 'Title is required' }, 400);
-  if (body.status && !validStatus(body.status)) return c.json({ detail: 'Invalid task status' }, 400);
-  if (body.priority !== undefined && !validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
+  const body = await readTaskInput(c);
 
   const result = await c.env.DB.prepare(
     `UPDATE tasks SET title = ?, description = ?, status = ?, priority = COALESCE(?, priority), deadline = ?
      WHERE id = ? AND owner_id = ?
      RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
-  ).bind(body.title.trim(), body.description || '', body.status || 'pending', body.priority ?? null, body.deadline || null,
-    c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
+  ).bind(body.title, body.description ?? '', body.status ?? 'pending', body.priority ?? null, body.deadline ?? null,
+    c.req.param('task_id'), c.get('user').id).first<TaskRow>();
 
   if (!result) return c.json({ detail: 'Task not found or unauthorized' }, 404);
   return c.json(taskResponse(result));
 }
 
 async function patchTask(c: TaskContext) {
-  const body = await c.req.json<Partial<TaskInput>>();
+  const body = await readTaskInput(c, false);
   const updates: string[] = [];
   const bindings: (string | number | null)[] = [];
 
   if (body.title !== undefined) {
-    if (!body.title.trim()) return c.json({ detail: 'Title is required' }, 400);
     updates.push('title = ?');
-    bindings.push(body.title.trim());
+    bindings.push(body.title);
   }
   if (body.description !== undefined) {
     updates.push('description = ?');
     bindings.push(body.description);
   }
   if (body.status !== undefined) {
-    if (!validStatus(body.status)) return c.json({ detail: 'Invalid task status' }, 400);
     updates.push('status = ?');
     bindings.push(body.status);
   }
@@ -132,7 +164,6 @@ async function patchTask(c: TaskContext) {
     bindings.push(body.deadline || null);
   }
   if (body.priority !== undefined) {
-    if (!validPriority(body.priority)) return c.json({ detail: 'Invalid task priority' }, 400);
     updates.push('priority = ?');
     bindings.push(body.priority);
   }
@@ -141,7 +172,7 @@ async function patchTask(c: TaskContext) {
   const result = await c.env.DB.prepare(
     `UPDATE tasks SET ${updates.join(', ')} WHERE id = ? AND owner_id = ?
      RETURNING id, title, description, created_at, status, priority, deadline, owner_id`
-  ).bind(...bindings, c.req.param('task_id'), currentUser(c).id).first<TaskRow>();
+  ).bind(...bindings, c.req.param('task_id'), c.get('user').id).first<TaskRow>();
 
   if (!result) return c.json({ detail: 'Task not found or unauthorized' }, 404);
   return c.json(taskResponse(result));
@@ -150,7 +181,7 @@ async function patchTask(c: TaskContext) {
 async function deleteTask(c: TaskContext) {
   const result = await c.env.DB.prepare(
     'DELETE FROM tasks WHERE id = ? AND owner_id = ?'
-  ).bind(c.req.param('task_id'), currentUser(c).id).run();
+  ).bind(c.req.param('task_id'), c.get('user').id).run();
 
   if (!result.meta.changes) return c.json({ detail: 'Task not found or unauthorized' }, 404);
   return c.json({ detail: 'Task successfully deleted' });

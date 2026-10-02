@@ -12,11 +12,12 @@ export function getSessionState() { return localStorage.getItem(stateKey); }
 export function getAccessToken() { return localStorage.getItem('access_token'); }
 export function isLoggedOut() { return getSessionState()?.startsWith('out:') ?? false; }
 
-export function isCurrentToken(token: string | null) {
-  if (!token) return false;
+export function isCurrentToken(token: unknown): token is string {
+  if (typeof token !== 'string' || !token) return false;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000 + 30;
+    const payload: unknown = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload !== null && typeof payload === 'object' && 'exp' in payload &&
+      typeof payload.exp === 'number' && payload.exp > Date.now() / 1000 + 30;
   } catch { return false; }
 }
 
@@ -77,18 +78,20 @@ export function refreshAccessToken(): Promise<string> {
       throw new SessionExpiredError();
     }
     if (response.status !== 200) throw new Error('Could not restore session');
-    const data = await response.json();
+    const body: unknown = await response.json();
     assertSession(state);
-    if (!isCurrentToken(data.access_token)) throw new Error('Invalid refresh response');
-    localStorage.setItem('access_token', data.access_token);
+    const token = body && typeof body === 'object' && 'access_token' in body ? body.access_token : undefined;
+    if (!isCurrentToken(token)) throw new Error('Invalid refresh response');
+    localStorage.setItem('access_token', token);
     if (!state) localStorage.setItem(stateKey, `in:${crypto.randomUUID()}`);
     notify();
-    return data.access_token as string;
+    return token;
   })();
   refreshing = { state, promise };
-  void promise.finally(() => {
+  const finishRefresh = () => {
     if (refreshing?.promise === promise) refreshing = undefined;
-  }).catch(() => {});
+  };
+  void promise.then(finishRefresh, finishRefresh);
   return promise;
 }
 

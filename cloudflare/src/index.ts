@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
 import users from './routes/users';
 import tasks from './routes/tasks';
 import type { Env } from './types';
@@ -15,7 +16,7 @@ app.route('/api', users);
 app.route('/api', tasks);
 
 app.notFound(async (c) => {
-  if (c.req.path === '/api' || c.req.path.startsWith('/api/')) {
+  if (c.req.path.startsWith('/api')) {
     return c.json({ detail: 'Not found' }, 404);
   }
   if (c.env.ASSETS) return c.env.ASSETS.fetch(c.req.raw);
@@ -23,6 +24,9 @@ app.notFound(async (c) => {
 });
 
 app.onError((error, c) => {
+  if (error instanceof HTTPException && error.status < 500) {
+    return c.json({ detail: error.message }, error.status);
+  }
   console.error(error);
   return c.json({ detail: 'Internal server error' }, 500);
 });

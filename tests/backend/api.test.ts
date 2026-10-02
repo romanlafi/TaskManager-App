@@ -43,15 +43,56 @@ describe('worker', () => {
     expect(fetch).toHaveBeenCalledWith(expect.any(Request));
   });
 
-  it('handles malformed request bodies', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('returns a client error for malformed JSON', async () => {
     const response = await app.request('/api/users', { method: 'POST', body: '{' }, env);
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ detail: 'Internal server error' });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ detail: 'Invalid JSON body' });
   });
 });
 
 describe('registration and login', () => {
+  it.each([null, [], 42, 'credentials'])('rejects non-object authentication bodies: %j', async (body) => {
+    for (const path of ['/users/', '/users/token']) {
+      const response = await request(path, 'POST', body);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ detail: 'Request body must be an object' });
+    }
+  });
+
+  it.each([
+    { username: 42, password: 'secret' },
+    { username: {}, password: 'secret' },
+    { username: 'carol', password: 42 },
+    { username: 'carol', password: {} },
+    { username: null, password: null },
+  ])('rejects incorrectly typed credentials without writing users: %j', async (body) => {
+    expect((await request('/users/', 'POST', body)).status).toBe(400);
+    expect((await request('/users/token', 'POST', body)).status).toBe(401);
+    expect(database.sqlite.prepare('SELECT COUNT(*) AS count FROM users').get()?.count).toBe(2);
+    expect(database.sqlite.prepare('SELECT COUNT(*) AS count FROM sessions').get()?.count).toBe(0);
+  });
+
+  it('checks bcrypt password limits in UTF-8 bytes without truncating passwords', async () => {
+    expect((await request('/users/', 'POST', { username: 'carol', password: 'é'.repeat(36) })).status).toBe(201);
+    const response = await request('/users/', 'POST', { username: 'dave', password: 'é'.repeat(37) });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ detail: 'Password must not exceed 72 UTF-8 bytes' });
+    expect(database.sqlite.prepare('SELECT id FROM users WHERE username = ?').get('dave')).toBeUndefined();
+  });
+
+  it('returns conflict if another registration wins after the username lookup', async () => {
+    const lookup = env.DB.prepare('SELECT id FROM users WHERE username = ?');
+    vi.spyOn(lookup, 'bind').mockReturnValue(lookup);
+    vi.spyOn(lookup, 'first').mockResolvedValue(null);
+    vi.spyOn(env.DB, 'prepare').mockReturnValueOnce(lookup);
+    expect((await request('/users/', 'POST', { username: 'alice', password: 'secret' })).status).toBe(409);
+    expect(database.sqlite.prepare('SELECT COUNT(*) AS count FROM users').get()?.count).toBe(2);
+  });
+
+  it('does not issue tokens when the JWT secret is missing', async () => {
+    env.JWT_SECRET = '';
+    await expect(createAccessToken({ id: 1, username: 'alice', role: 'User' }, env)).rejects.toThrow('JWT_SECRET is required');
+  });
   it.each(['/users', '/users/'])('registers at %s with a hashed password', async (path) => {
     const response = await request(path, 'POST', { username: ' carol ', password: 'secret' });
     expect(response.status).toBe(201);
@@ -142,6 +183,51 @@ describe('authentication', () => {
 });
 
 describe('tasks', () => {
+  it.each(['POST', 'PUT', 'PATCH'])('validates untrusted JSON before database writes for %s', async (method) => {
+    await request('/tasks/', 'POST', { title: 'Original', description: 'Keep', deadline: '2026-10-01' });
+    const path = method === 'POST' ? '/tasks/' : '/tasks/1';
+    for (const body of [
+      null, [], 42, 'task',
+      { title: null }, { title: 42 }, { title: false },
+      { title: 'Task', description: null }, { title: 'Task', description: {} },
+      { title: 'Task', status: null }, { title: 'Task', status: false }, { title: 'Task', status: '' },
+      { title: 'Task', deadline: 42 }, { title: 'Task', deadline: {} },
+      { title: 'Task', deadline: 'not-a-date' }, { title: 'Task', deadline: '2026-02-30' },
+      { title: 'Task', deadline: '2026-13-01' },
+    ]) {
+      const response = await request(path, method, body);
+      expect(response.status, JSON.stringify(body)).toBe(400);
+      expect((await response.json()).detail).toEqual(expect.any(String));
+    }
+    expect(await (await request('/tasks/')).json()).toEqual([
+      expect.objectContaining({ title: 'Original', description: 'Keep', deadline: '2026-10-01' }),
+    ]);
+  });
+
+  it('accepts leap days, ISO timestamps, and explicit deadline removal', async () => {
+    const created = await request('/tasks/', 'POST', { title: 'Leap day', deadline: '2028-02-29' });
+    expect(created.status).toBe(201);
+    expect(await (await request('/tasks/1', 'PUT', { title: 'Timestamp', deadline: '2028-02-29T12:30:00Z' })).json())
+      .toMatchObject({ deadline: '2028-02-29T12:30:00Z' });
+    expect(await (await request('/tasks/1', 'PATCH', { deadline: null })).json()).toMatchObject({ deadline: null });
+  });
+
+  it('returns a server error if a task insert unexpectedly returns no row', async () => {
+    const prepare = env.DB.prepare.bind(env.DB);
+    vi.spyOn(env.DB, 'prepare').mockImplementation((sql) => {
+      const statement = prepare(sql);
+      if (sql.includes('INSERT INTO tasks')) {
+        vi.spyOn(statement, 'bind').mockReturnValue(statement);
+        vi.spyOn(statement, 'first').mockResolvedValue(null);
+      }
+      return statement;
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const response = await request('/tasks/', 'POST', { title: 'New task' });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ detail: 'Internal server error' });
+    expect(log).toHaveBeenCalledWith(expect.objectContaining({ message: 'Task insert returned no row' }));
+  });
   it.each(['POST', 'PUT', 'PATCH'])('rejects invalid priorities for %s', async (method) => {
     const path = method === 'POST' ? '/tasks/' : '/tasks/1';
     expect((await request(path, method, { title: 'Task', priority: 'urgent' })).status).toBe(400);

@@ -23,11 +23,15 @@ import { HttpError, isCancelled } from '../../services/http';
 import { logoutSession, SessionExpiredError } from '../../services/session';
 
 interface DashboardProps {
-  setToastMessage: (msg: string) => void;
-  setToastType: (type: ToastType) => void;
+  readonly showToast: (message: string, type: ToastType) => void;
 }
 
 type TaskView = 'list' | 'board' | 'calendar';
+interface TaskEditorState {
+  task: Task | null;
+  deadline: string;
+  status: TaskStatus;
+}
 const VIEWS = [
   { value: 'list', label: 'List', icon: List },
   { value: 'board', label: 'Board', icon: Columns3 },
@@ -35,7 +39,7 @@ const VIEWS = [
 ] as const;
 const DEFAULT_FILTERS: TaskFilters = { search: '', status: '', priority: '', beforeDeadline: '', orderBy: 'priority' };
 
-export default function Dashboard({ setToastMessage, setToastType }: DashboardProps) {
+export default function Dashboard({ showToast }: DashboardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
   const [view, setView] = useState<TaskView>(() => {
@@ -46,19 +50,11 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(0);
-  const [showModal, setShowModal] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [initialDeadline, setInitialDeadline] = useState('');
-  const [initialStatus, setInitialStatus] = useState<TaskStatus>('pending');
+  const [taskEditor, setTaskEditor] = useState<TaskEditorState | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [busyIds, setBusyIds] = useState<Set<number>>(new Set());
   const pendingIds = useRef(new Set<number>());
-
-  const showToast = (message: string, type: ToastType) => {
-    setToastMessage(message);
-    setToastType(type);
-  };
 
   const handleLogout = async () => {
     try {
@@ -83,39 +79,36 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
         if (!controller.signal.aborted) setTasks(data);
       })
       .catch((err: unknown) => {
-        if (controller.signal.aborted || isCancelled(err) || err instanceof SessionExpiredError) return;
+        if (controller.signal.aborted) return;
+        if (isCancelled(err) || err instanceof SessionExpiredError) return;
         setError(true);
-        setToastMessage(err instanceof HttpError ? err.message : MESSAGES.SERVER_ERROR);
-        setToastType('error');
+        handleError(err);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [reload, setToastMessage, setToastType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload]);
 
   const openCreateModal = (deadline = '', status: TaskStatus = 'pending') => {
-    setEditingTask(null);
-    setInitialDeadline(deadline);
-    setInitialStatus(status);
-    setShowModal(true);
+    setTaskEditor({ task: null, deadline, status });
   };
 
   const openEditModal = (task: Task) => {
     if (pendingIds.current.has(task.id)) return;
-    setEditingTask(task);
-    setShowModal(true);
+    setTaskEditor({ task, deadline: '', status: task.status });
   };
 
-  const handleSaveTask = async (data: TaskFormData) => {
+  const handleSaveTask = async (form: TaskFormData) => {
+    const editingTask = taskEditor?.task;
     try {
-      const saved = editingTask ? await updateTask(editingTask.id, data) : await createTask(data);
+      const saved = editingTask ? await updateTask(editingTask.id, form) : await createTask(form);
       setTasks((current) =>
         editingTask ? current.map((task) => (task.id === saved.id ? saved : task)) : [...current, saved],
       );
       showToast(editingTask ? MESSAGES.TASK_UPDATED : MESSAGES.TASK_CREATED, 'success');
-      setShowModal(false);
-      setEditingTask(null);
+      setTaskEditor(null);
     } catch (err) {
       handleError(err);
     }
@@ -132,7 +125,7 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
     setBusy(task.id, true);
     try {
       const saved = await changeTaskStatus(task.id, status);
-      setTasks((current) => current.map((item) => (item.id === saved.id ? saved : item)));
+      setTasks((current) => current.map((currentTask) => (currentTask.id === saved.id ? saved : currentTask)));
       showToast(MESSAGES.TASK_UPDATED, 'success');
     } catch (err) {
       handleError(err);
@@ -279,9 +272,9 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
         className="min-h-0 flex-1 overflow-auto px-8 py-6 max-md:px-4 max-md:py-4"
       >
         {loading && (
-          <p role="status" className="py-12 text-center text-sm text-content/50">
+          <output className="block py-12 text-center text-sm text-content/50">
             Loading your tasks...
-          </p>
+          </output>
         )}
         {error && (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -373,15 +366,12 @@ export default function Dashboard({ setToastMessage, setToastType }: DashboardPr
         onCancel={() => setShowLogoutConfirm(false)}
       />
       <TaskModal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setEditingTask(null);
-        }}
+        isOpen={taskEditor !== null}
+        onClose={() => setTaskEditor(null)}
         onSave={handleSaveTask}
-        initialData={editingTask}
-        initialDeadline={initialDeadline}
-        initialStatus={initialStatus}
+        initialData={taskEditor?.task}
+        initialDeadline={taskEditor?.deadline}
+        initialStatus={taskEditor?.status}
       />
     </div>
   );
