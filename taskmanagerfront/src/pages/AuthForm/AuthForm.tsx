@@ -10,7 +10,7 @@ import { MESSAGES } from '../../config/messages';
 import type { ToastType } from '../../types';
 
 interface AuthFormProps {
-  showToast: (message: string, type: ToastType) => void;
+  readonly showToast: (message: string, type: ToastType) => void;
 }
 
 const AuthForm = ({ showToast }: AuthFormProps) => {
@@ -69,9 +69,10 @@ const AuthForm = ({ showToast }: AuthFormProps) => {
     }
   };
 
-  const submitLabel = submitting
-    ? (isLogin ? 'Logging in...' : 'Creating account...')
-    : (isLogin ? 'Log In' : 'Register');
+  const submitLabels = isLogin
+    ? { idle: 'Log In', busy: 'Logging in...' }
+    : { idle: 'Register', busy: 'Creating account...' };
+  const submitLabel = submitting ? submitLabels.busy : submitLabels.idle;
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg p-8 text-content max-sm:p-4">

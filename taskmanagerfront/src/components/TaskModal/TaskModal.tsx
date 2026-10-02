@@ -9,12 +9,12 @@ import type { Task, TaskFormData, TaskStatus, TaskPriority } from '../../types';
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 
 interface TaskModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: TaskFormData) => Promise<void>;
-  initialData?: Task | null;
-  initialDeadline?: string;
-  initialStatus?: TaskStatus;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly onSave: (data: TaskFormData) => Promise<void>;
+  readonly initialData?: Task | null;
+  readonly initialDeadline?: string;
+  readonly initialStatus?: TaskStatus;
 }
 
 const TaskModal = ({

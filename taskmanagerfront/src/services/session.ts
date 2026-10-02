@@ -80,8 +80,9 @@ export function refreshAccessToken(): Promise<string> {
     if (response.status !== 200) throw new Error('Could not restore session');
     const body: unknown = await response.json();
     assertSession(state);
-    const token = body && typeof body === 'object' && 'access_token' in body ? body.access_token : undefined;
-    if (!isCurrentToken(token)) throw new Error('Invalid refresh response');
+    const raw = body && typeof body === 'object' && 'access_token' in body ? body.access_token : undefined;
+    if (!isCurrentToken(raw)) throw new Error('Invalid refresh response');
+    const token = raw.replace(/[^\w.~+/=-]/g, '');
     localStorage.setItem('access_token', token);
     if (!state) localStorage.setItem(stateKey, `in:${crypto.randomUUID()}`);
     notify();

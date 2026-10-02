@@ -4,7 +4,7 @@ import SelectInput from '../ui/SelectInput/SelectInput';
 import type { Task, TaskStatus } from '../../types';
 import { dateKey, formatDeadline, PRIORITY_OPTIONS, PRIORITY_STYLE, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 
-interface TaskCardProps extends Task {
+interface TaskCardProps extends Readonly<Task> {
   readonly onEdit: () => void;
   readonly onDelete: () => void;
   readonly onStatusChange: (status: TaskStatus) => void;

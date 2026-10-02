@@ -48,7 +48,7 @@ const SelectInput = ({
             ))}
         </select>
         <ChevronDown
-          size={size === 's' ? 14 : size === 'l' ? 18 : 16}
+          size={{ s: 14, l: 18, m: 16 }[size]}
           aria-hidden="true"
           className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-content/45 transition-colors group-focus-within:text-accent ${size === 's' ? 'right-2.5' : 'right-3'} ${props.disabled ? 'opacity-50' : ''}`}
         />

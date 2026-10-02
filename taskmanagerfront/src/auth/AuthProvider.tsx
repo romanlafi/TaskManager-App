@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 import { getAccessToken, getSessionSnapshot, getSessionState, isCurrentToken, isLoggedOut, refreshAccessToken, SessionExpiredError, subscribeSession } from '../services/session';
 import { isCancelled } from '../services/http';
@@ -13,7 +13,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { readonly children: ReactNode }) {
   const snapshot = useSyncExternalStore(subscribeSession, getSessionSnapshot);
   const [checking, setChecking] = useState(!isCurrentToken(getAccessToken()) && !isLoggedOut());
   const [error, setError] = useState(false);
@@ -28,8 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     setChecking(true);
-    void refreshAccessToken().catch((failure) => {
-      if (active && !(failure instanceof SessionExpiredError) && !isCancelled(failure)) setError(true);
+    void refreshAccessToken().catch((error_) => {
+      if (active && !(error_ instanceof SessionExpiredError) && !isCancelled(error_)) setError(true);
     }).finally(() => { if (active) setChecking(false); });
     return () => { active = false; };
   }, [snapshot, attempt]);
@@ -40,7 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  return <AuthContext.Provider value={{ authenticated: !!getAccessToken() && !isLoggedOut(), checking, error, sessionId: getSessionState(), retry }}>{children}</AuthContext.Provider>;
+  const authenticated = !!getAccessToken() && !isLoggedOut();
+  const sessionId = getSessionState();
+  const value = useMemo(() => ({ authenticated, checking, error, sessionId, retry }), [authenticated, checking, error, sessionId, retry]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

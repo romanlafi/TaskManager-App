@@ -7,9 +7,9 @@ import { PRIORITY_OPTIONS, STATUS_OPTIONS } from '../TaskViews/taskViewUtils';
 import type { TaskFilters } from '../TaskViews/taskViewUtils';
 
 interface FilterPanelProps {
-  filters: TaskFilters;
-  onChange: (filters: TaskFilters) => void;
-  onReset: () => void;
+  readonly filters: TaskFilters;
+  readonly onChange: (filters: TaskFilters) => void;
+  readonly onReset: () => void;
 }
 
 export default function FilterPanel({ filters, onChange, onReset }: FilterPanelProps) {

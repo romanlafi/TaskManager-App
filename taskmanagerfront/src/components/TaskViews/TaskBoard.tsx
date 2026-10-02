@@ -6,12 +6,12 @@ import { STATUS_OPTIONS } from './taskViewUtils';
 import type { Task, TaskStatus } from '../../types';
 
 interface TaskBoardProps {
-  tasks: Task[];
-  busyIds: Set<number>;
-  onEdit: (task: Task) => void;
-  onDelete: (task: Task) => void;
-  onStatusChange: (task: Task, status: TaskStatus) => void;
-  onCreate: (status: TaskStatus) => void;
+  readonly tasks: Task[];
+  readonly busyIds: Set<number>;
+  readonly onEdit: (task: Task) => void;
+  readonly onDelete: (task: Task) => void;
+  readonly onStatusChange: (task: Task, status: TaskStatus) => void;
+  readonly onCreate: (status: TaskStatus) => void;
 }
 
 export default function TaskBoard({ tasks, busyIds, onEdit, onDelete, onStatusChange, onCreate }: TaskBoardProps) {
